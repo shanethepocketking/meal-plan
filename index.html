@@ -1,629 +1,1108 @@
 <!DOCTYPE html>
-<script type="application/json" id="cowork-artifact-meta">
-{
-  "name": "Meal Plan Templates",
-  "schemaVersion": 1,
-  "description": "Bodybuilding meal plan templates for 4 training days/week. Auto-detects today's plan from your schedule. 5 plan types: Training/Home, Rest/Home, Training/Office, Rest/Office, Weekend. Includes weekly grocery quantities and copy buttons for MacroFactor logging."
-}
-</script>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Meal Plans</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Shane's Meals</title>
 <style>
-:root { color-scheme: light; }
-*{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f3f4f6;color:#111827;font-size:15px;line-height:1.5;max-width:480px;margin:0 auto;padding-bottom:72px;}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f1f5f9;
+  --card: #ffffff;
+  --primary: #2563eb;
+  --text: #0f172a;
+  --muted: #64748b;
+  --border: #e2e8f0;
+  --train-color: #16a34a;
+  --rest-color: #7c3aed;
+  --weekend-color: #db2777;
+  --radius: 14px;
+  --bottom-nav-h: 72px;
+  --header-h: 56px;
+}
+html, body {
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-width: 430px;
+  margin: 0 auto;
+  background: var(--bg);
+  position: relative;
+}
+header {
+  height: var(--header-h);
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 18px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+header h1 { font-size: 18px; font-weight: 800; letter-spacing: -0.3px; }
+header .date { font-size: 12px; color: var(--muted); font-weight: 500; }
+#content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px;
+  padding-bottom: calc(var(--bottom-nav-h) + 14px);
+  -webkit-overflow-scrolling: touch;
+}
+nav#tabs {
+  height: var(--bottom-nav-h);
+  background: var(--card);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: stretch;
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 430px;
+  z-index: 10;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.tab-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  transition: color 0.15s;
+  padding-top: 8px;
+}
+.tab-btn.active { color: var(--primary); }
+.tab-btn svg { width: 22px; height: 22px; }
 
-.header{background:#fff;border-bottom:1px solid #e5e7eb;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
-.header h1{font-size:17px;font-weight:600;}
-.settings-btn{background:none;border:1px solid #e5e7eb;border-radius:8px;padding:6px 10px;font-size:13px;color:#6b7280;cursor:pointer;font-family:inherit;}
+/* Cards */
+.card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
 
-.bottom-nav{position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;background:#fff;border-top:1px solid #e5e7eb;display:grid;grid-template-columns:repeat(3,1fr);z-index:100;}
-.nav-btn{background:none;border:none;padding:10px 4px 8px;font-size:11px;color:#9ca3af;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:3px;}
-.nav-btn.on{color:#111827;font-weight:500;}
-.nav-icon{font-size:20px;line-height:1;}
+/* Schedule tab */
+.week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 4px;
+}
+.day-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  padding: 4px 2px;
+  border-radius: 10px;
+  transition: background 0.1s;
+}
+.day-cell:active { background: var(--border); }
+.day-label { font-size: 9px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; }
+.day-num {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  background: transparent;
+  color: var(--text);
+  transition: all 0.15s;
+}
+.day-cell.today .day-num { background: var(--primary); color: white; }
+.day-cell.selected:not(.today) .day-num { background: var(--border); }
+.day-plan-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border); transition: background 0.15s; }
+.day-plan-dot.training { background: var(--train-color); }
+.day-plan-dot.rest { background: var(--rest-color); }
+.day-plan-dot.weekend { background: var(--weekend-color); }
 
-.tab{display:none;padding:16px;}
-.tab.on{display:block;}
+/* Plan picker */
+.plan-picker { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.plan-option {
+  padding: 12px 10px;
+  border-radius: 12px;
+  border: 2px solid var(--border);
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: center;
+}
+.plan-option:active { opacity: 0.8; }
+.plan-option.selected { border-width: 2px; }
+.plan-option .plan-icon { font-size: 22px; margin-bottom: 4px; }
+.plan-option .plan-name { font-size: 12px; font-weight: 700; }
+.plan-option .plan-macros { font-size: 10px; color: var(--muted); margin-top: 2px; }
 
-.today-hero{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;margin-bottom:16px;}
-.today-date{font-size:12px;color:#9ca3af;margin-bottom:4px;}
-.today-plan{font-size:18px;font-weight:600;color:#111827;}
-.today-badge{display:inline-flex;align-items:center;background:#eff6ff;color:#1e40af;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:500;margin-top:6px;}
-.rest-badge{background:#f0fdf4;color:#166534;}
-.no-schedule{font-size:13px;color:#6b7280;margin-top:6px;}
+/* Macro display */
+.macro-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 14px; }
+.macro-pill { background: var(--bg); border-radius: 10px; padding: 10px 4px; text-align: center; }
+.macro-pill .value { font-size: 17px; font-weight: 800; line-height: 1; }
+.macro-pill .label { font-size: 10px; color: var(--muted); margin-top: 3px; font-weight: 500; }
+.macro-bar-row { margin-bottom: 10px; }
+.macro-label { display: flex; justify-content: space-between; font-size: 11px; font-weight: 500; margin-bottom: 4px; color: var(--muted); }
+.macro-label strong { color: var(--text); }
+.macro-bar { height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.macro-bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
 
-.section-label{font-size:11px;font-weight:600;color:#9ca3af;letter-spacing:.06em;text-transform:uppercase;margin:16px 0 6px;}
+/* Meal list */
+.meal-row {
+  padding: 13px 0;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+.meal-row:last-child { border-bottom: none; }
+.meal-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.meal-timing {
+  font-size: 10px;
+  color: var(--muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 3px;
+}
+.meal-name { font-size: 14px; font-weight: 600; line-height: 1.3; }
+.meal-macros { font-size: 12px; color: var(--muted); margin-top: 3px; }
+.meal-chevron { color: var(--muted); transition: transform 0.2s; flex-shrink: 0; margin-top: 2px; }
+.meal-chevron.open { transform: rotate(90deg); }
+.meal-detail {
+  font-size: 13px;
+  color: #374151;
+  margin-top: 10px;
+  padding: 11px 12px;
+  background: var(--bg);
+  border-radius: 10px;
+  line-height: 1.6;
+  display: none;
+}
+.meal-detail.open { display: block; }
 
-.mcard{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:12px 14px;margin-bottom:8px;}
-.mcard-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:4px;}
-.mname{font-size:14px;font-weight:500;color:#111827;flex:1;}
-.est-tag{font-size:11px;font-weight:400;color:#9ca3af;}
-.copy-btn{background:none;border:1px solid #e5e7eb;border-radius:6px;padding:4px 9px;font-size:11px;color:#6b7280;cursor:pointer;white-space:nowrap;font-family:inherit;flex-shrink:0;transition:background 0.1s;}
-.copy-btn:active{background:#f3f4f6;}
-.copy-btn.ok{color:#065f46;border-color:#6ee7b7;background:#ecfdf5;}
-.copy-btn.mf{background:#eff6ff;border-color:#bfdbfe;color:#1e40af;}
-.copy-btn.mf.ok{color:#065f46;border-color:#6ee7b7;background:#ecfdf5;}
-.mfoods-row{display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;}
-.mfoods{font-size:12px;color:#6b7280;line-height:1.6;flex:1;}
-.chips{display:flex;flex-wrap:wrap;gap:4px;}
-.chip{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500;}
-.cp{background:#d1fae5;color:#065f46;}
-.cc{background:#dbeafe;color:#1e40af;}
-.cf{background:#fef3c7;color:#92400e;}
-.ck{background:#f3f4f6;color:#6b7280;}
+/* Copy button */
+.copy-btn {
+  min-width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border);
+  background: var(--bg);
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 19px;
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.copy-btn:active { transform: scale(0.88); }
+.copy-btn.copied { background: #f0fdf4; border-color: #86efac; color: var(--train-color); font-size: 15px; font-weight: 700; }
 
-.totbox{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:14px;margin-top:12px;}
-.tottitle{font-size:13px;font-weight:500;color:#111827;margin-bottom:2px;}
-.totsub{font-size:11px;color:#9ca3af;margin-bottom:10px;}
-.totgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
-.totcell{text-align:center;}
-.totval{font-size:20px;font-weight:500;}
-.totlbl{font-size:10px;color:#9ca3af;margin-top:1px;}
+/* Chat tab */
+@keyframes blink { 0%,100%{opacity:0.2} 50%{opacity:1} }
+.dot { display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--muted); animation:blink 1.2s infinite; }
+.dot:nth-child(2) { animation-delay:0.2s; }
+.dot:nth-child(3) { animation-delay:0.4s; }
 
-.note{padding:9px 12px;border-radius:0;margin:6px 0;font-size:12px;line-height:1.6;border-left:3px solid;}
-.ni{background:#eff6ff;color:#1e40af;border-color:#3b82f6;}
-.nw{background:#fffbeb;color:#92400e;border-color:#f59e0b;}
-.ns{background:#ecfdf5;color:#065f46;border-color:#10b981;}
+/* Prep */
+.prep-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.prep-item:last-child { border-bottom: none; }
+.check-circle {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  flex-shrink: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+.check-circle.checked { background: var(--train-color); border-color: var(--train-color); }
+.prep-text { flex: 1; font-size: 14px; transition: all 0.15s; }
+.prep-text.checked { text-decoration: line-through; color: var(--muted); }
+.prep-qty { font-size: 12px; color: var(--muted); font-weight: 600; white-space: nowrap; }
 
-.plan-picker{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:12px 14px;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
-.plan-picker label{font-size:13px;color:#6b7280;white-space:nowrap;}
-.plan-picker select{flex:1;border:none;background:none;font-size:14px;font-weight:500;color:#111827;font-family:inherit;cursor:pointer;}
+/* Grocery */
+.grocery-cat-title {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.grocery-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--border);
+}
+.grocery-item:last-child { border-bottom: none; }
+.check-square {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 2px solid var(--border);
+  flex-shrink: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+.check-square.checked { background: var(--primary); border-color: var(--primary); }
+.grocery-name { flex: 1; font-size: 14px; }
+.grocery-name.checked { text-decoration: line-through; color: var(--muted); }
+.grocery-qty { font-size: 12px; color: var(--muted); font-weight: 600; white-space: nowrap; }
 
-.grocery-card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:12px 14px;margin-bottom:10px;}
-.grocery-cat{font-size:13px;font-weight:600;color:#111827;margin-bottom:10px;}
-.grocery-row{display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;border-bottom:1px solid #f3f4f6;font-size:13px;}
-.grocery-row:last-child{border-bottom:none;}
-.grocery-name{color:#374151;}
-.grocery-qty{font-weight:500;color:#111827;font-size:12px;text-align:right;}
-.grocery-sub{font-size:12px;color:#9ca3af;margin-bottom:12px;}
-.schedule-badge{display:inline-block;background:#f3f4f6;border-radius:6px;padding:2px 8px;font-size:11px;color:#6b7280;margin-bottom:12px;}
+/* Day nav strip */
+.day-nav {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  margin-bottom: 14px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.day-nav::-webkit-scrollbar { display: none; }
+.day-nav-btn {
+  flex-shrink: 0;
+  padding: 6px 13px;
+  border-radius: 20px;
+  border: 2px solid transparent;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--card);
+  color: var(--muted);
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.day-nav-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+.day-nav-btn.is-today { border-color: var(--primary); color: var(--primary); }
+.day-nav-btn.active.is-today { color: white; }
 
-.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:200;align-items:flex-end;justify-content:center;}
-.overlay.on{display:flex;}
-.sheet{background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 32px;width:100%;max-width:480px;max-height:88vh;overflow-y:auto;}
-.sheet-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}
-.sheet-title{font-size:16px;font-weight:600;}
-.close-x{background:#f3f4f6;border:none;border-radius:50%;width:30px;height:30px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
-.sett-label{font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;}
-.day-row{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:8px;}
-.day-chip{text-align:center;padding:8px 2px;border-radius:8px;font-size:12px;border:1.5px solid #e5e7eb;cursor:pointer;background:#fff;font-family:inherit;transition:all 0.1s;}
-.day-chip .d{font-weight:500;}
-.day-chip .dt{font-size:10px;color:#9ca3af;margin-top:1px;}
-.day-chip.tr{background:#dbeafe;border-color:#93c5fd;color:#1e40af;}
-.day-chip.tr .dt{color:#93c5fd;}
-.legend{display:flex;gap:14px;margin-bottom:20px;font-size:12px;color:#6b7280;flex-wrap:wrap;}
-.leg{display:flex;align-items:center;gap:5px;}
-.leg-sq{width:12px;height:12px;border-radius:3px;}
-.office-note{font-size:12px;color:#9ca3af;margin-bottom:16px;line-height:1.5;}
-.save-btn{width:100%;background:#111827;color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:500;cursor:pointer;font-family:inherit;}
-.sett-divider{height:1px;background:#f3f4f6;margin:16px 0;}
-.office-day-row{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:8px;}
-.off-chip{text-align:center;padding:8px 2px;border-radius:8px;font-size:12px;border:1.5px solid #e5e7eb;cursor:pointer;background:#fff;font-family:inherit;}
-.off-chip .d{font-weight:500;}
-.off-chip .dt{font-size:10px;color:#9ca3af;margin-top:1px;}
-.off-chip.off{background:#fef9c3;border-color:#fde047;color:#713f12;}
-.off-chip.off .dt{color:#fcd34d;}
+/* Empty state */
+.empty-state { text-align: center; padding: 48px 20px; color: var(--muted); }
+.empty-state .icon { font-size: 44px; margin-bottom: 12px; }
+.empty-state p { font-size: 14px; line-height: 1.6; }
+
+/* Week summary tags */
+.week-summary { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.week-tag { padding: 5px 11px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+
+/* Info banner */
+.info-banner {
+  border-radius: var(--radius);
+  padding: 13px 15px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.section-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 10px;
+}
 </style>
 </head>
 <body>
-
-<div class="header">
-  <h1>Meal Plans</h1>
-  <button class="settings-btn" id="openSettings">Schedule ⚙</button>
-</div>
-
-<div class="tab on" id="tab-today"></div>
-<div class="tab" id="tab-browse"></div>
-<div class="tab" id="tab-groceries"></div>
-
-<nav class="bottom-nav">
-  <button class="nav-btn on" data-tab="today" onclick="switchTab('today',this)">
-    <span class="nav-icon">📅</span>Today
-  </button>
-  <button class="nav-btn" data-tab="browse" onclick="switchTab('browse',this)">
-    <span class="nav-icon">📋</span>All plans
-  </button>
-  <button class="nav-btn" data-tab="groceries" onclick="switchTab('groceries',this)">
-    <span class="nav-icon">🛒</span>Groceries
-  </button>
-</nav>
-
-<div class="overlay" id="settingsOverlay">
-  <div class="sheet">
-    <div class="sheet-header">
-      <span class="sheet-title">Your weekly schedule</span>
-      <button class="close-x" id="closeSettings">✕</button>
-    </div>
-    <p class="sett-label">Training days</p>
-    <div class="day-row" id="trainDayRow"></div>
-    <div class="legend">
-      <div class="leg"><div class="leg-sq" style="background:#dbeafe;border:1px solid #93c5fd"></div> Training day</div>
-      <div class="leg"><div class="leg-sq" style="background:#fff;border:1px solid #e5e7eb"></div> Rest day</div>
-    </div>
-    <div class="sett-divider"></div>
-    <p class="sett-label">Office days</p>
-    <div class="office-day-row" id="officeDayRow"></div>
-    <div class="legend">
-      <div class="leg"><div class="leg-sq" style="background:#fef9c3;border:1px solid #fde047"></div> Office day</div>
-      <div class="leg"><div class="leg-sq" style="background:#fff;border:1px solid #e5e7eb"></div> Home day</div>
-    </div>
-    <p class="office-note">Office days use the cafeteria-based plans with your fixed snacks (protein scoop + GoMacro bar).</p>
-    <button class="save-btn" id="saveSettings">Save schedule</button>
-  </div>
+<div id="app">
+  <header>
+    <h1>Shane's Meals</h1>
+    <span class="date" id="header-date"></span>
+  </header>
+  <div id="content"></div>
+  <nav id="tabs">
+    <button class="tab-btn active" onclick="setTab('meals')" id="tab-meals">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/>
+        <line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>
+      </svg>
+      Meals
+    </button>
+    <button class="tab-btn" onclick="setTab('schedule')" id="tab-schedule">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+        <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+      </svg>
+      Schedule
+    </button>
+    <button class="tab-btn" onclick="setTab('prep')" id="tab-prep">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+      </svg>
+      Prep
+    </button>
+    <button class="tab-btn" onclick="setTab('grocery')" id="tab-grocery">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
+        <line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/>
+      </svg>
+      Grocery
+    </button>
+    <button class="tab-btn" onclick="setTab('ask')" id="tab-ask">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+      </svg>
+      Ask
+    </button>
+  </nav>
 </div>
 
 <script>
-var DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-var DEFAULT_TRAIN=[1,2,4,6];
-var DEFAULT_OFFICE=[1,2,3];
+// ─────────────────────────────────────────────
+// DATA
+// ─────────────────────────────────────────────
+const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 
-function loadSchedule(){
-  try{
-    var t=JSON.parse(localStorage.getItem('trainDays')||'null');
-    var o=JSON.parse(localStorage.getItem('officeDays')||'null');
-    return{train:t||DEFAULT_TRAIN,office:o||DEFAULT_OFFICE};
-  }catch(e){return{train:DEFAULT_TRAIN,office:DEFAULT_OFFICE};}
-}
-function saveSchedule(t,o){
-  try{localStorage.setItem('trainDays',JSON.stringify(t));localStorage.setItem('officeDays',JSON.stringify(o));}catch(e){}
-}
-
-var schedule=loadSchedule();
-
-function getPlanKey(dayIdx){
-  var isTrain=schedule.train.indexOf(dayIdx)>=0;
-  var isOffice=schedule.office.indexOf(dayIdx)>=0;
-  if(isTrain&&isOffice)return'training-office';
-  if(isTrain)return'training-home';
-  if(isOffice)return'rest-office';
-  return'rest-home';
-}
-
-var PLANS={
-  'training-home':{
-    label:'Training Day — Home',
-    target:'220g P · 430g C · 85g F · ~3,450 kcal',
-    isTraining:true,
-    meals:[
-      {slot:'Meal 1 — Smoothie',name:'Morning smoothie',
-       foods:'1 scoop True Nutrition soy and egg protein · 180g liquid egg whites · 240ml Silk unsweetened soy milk · 100g GF rolled oats · 200g mixed berries',
-       copy:'1 scoop True Nutrition soy and egg protein, 180g liquid egg whites, 240ml Silk unsweetened soy milk, 100g rolled oats, 200g mixed berries smoothie',
-       p:72,c:97,f:11,k:767},
-      {slot:'Snack 1 — Mid-morning',name:'Rice cakes, almond butter & banana',
-       foods:'50g rice cakes · 2 tbsp almond butter · 1 large banana (150g)',
-       copy:'50g rice cakes, 2 tablespoons almond butter, 1 large banana',
-       p:12,c:82,f:19,k:528},
-      {slot:'Meal 2 — Lunch',name:'Chicken, rice & stir-fry veggies',
-       foods:'170g cooked chicken breast · 300g cooked white rice · 150g bell pepper, zucchini & carrots · 1 tbsp olive oil · garlic to taste',
-       copy:'170g cooked chicken breast, 300g cooked white rice, 150g stir-fried vegetables (bell pepper zucchini carrots), 1 tablespoon olive oil',
-       p:63,c:96,f:20,k:809},
-      {slot:'Snack 2 — Pre-workout',name:'Protein & cream of rice',
-       foods:'1 scoop True Nutrition soy and egg protein · 60g cream of rice (cooked with water)',
-       copy:'1 scoop True Nutrition soy and egg protein, 60g cream of rice cooked',
-       p:33,c:48,f:0,k:326},
-      {slot:'Intra-workout',name:'HBCD & Gatorade',
-       foods:'1 scoop True Nutrition highly branched cyclic dextrin · 1 scoop powdered Gatorade · mixed in water',
-       copy:'True Nutrition highly branched cyclic dextrin 1 scoop, Gatorade powder 1 scoop in water',
-       p:0,c:46,f:0,k:180},
-      {slot:'Meal 3 — Post-workout dinner',name:'Chicken, rice & roasted veggies',
-       foods:'170g cooked chicken breast · 300g cooked white rice · 150g mixed veggies · 1 tbsp olive oil · garlic & GF tamari',
-       copy:'170g cooked chicken breast, 300g cooked white rice, 150g roasted mixed vegetables, 1 tablespoon olive oil',
-       p:62,c:76,f:19,k:705},
-      {slot:'Snack 3 — Before bed',name:'Ground beef & avocado',
-       foods:'120g cooked 90% lean ground beef · 80g fresh avocado',
-       copy:'120g cooked 90% lean ground beef, 80g fresh avocado',
-       p:33,c:7,f:24,k:364}
+const PLAN_TYPES = {
+  'training-home': {
+    label: 'Training · Home', short: 'Train/Home', icon: '🏋️',
+    color: '#16a34a', bg: '#f0fdf4', category: 'training',
+    targets: { p: 260, c: 195, f: 87, kcal: 2600 },
+    meals: [
+      { timing: 'Morning', name: 'Smoothie', p: 72, c: 49, f: 7, kcal: 579,
+        detail: '1.5 scoops True Nutrition soy & egg protein · ¾ cup liquid egg whites · 40g GF rolled oats · 150g mixed berries · 1 tbsp ground flaxseed' },
+      { timing: 'Lunch', name: 'Chicken + rice + stir-fry veggies', p: 58, c: 48, f: 25, kcal: 660,
+        detail: '200g cooked chicken breast · 175g cooked white rice · 100g bell pepper, zucchini & carrots · 50g baby spinach · 1.5 tbsp olive oil · garlic to taste' },
+      { timing: 'Intra-workout', name: 'Gatorade', p: 0, c: 52, f: 0, kcal: 200,
+        detail: '28 oz Gatorade Thirst Quencher (bring to gym).' },
+      { timing: 'Post-workout', name: 'Protein shake', p: 45, c: 0, f: 0, kcal: 180,
+        detail: '1.5 scoops True Nutrition soy & egg protein in water.' },
+      { timing: 'Dinner', name: 'Ground beef + rice + roasted veggies', p: 59, c: 33, f: 52, kcal: 804,
+        detail: '170g cooked 90% lean ground beef · 125g cooked white rice · 100g mixed veggies · 50g baby spinach · 2.5 tbsp olive oil · garlic, GF tamari, ¼ tsp turmeric & pinch black pepper\n\nSalmon swap: replace ground beef with 170g cooked salmon + reduce oil by 1 tbsp — great 2–3×/week for variety & selenium.' },
+      { timing: 'Before bed', name: 'Greek yogurt + Brazil nut', p: 26, c: 13, f: 3, kcal: 183,
+        detail: '250g plain non-fat Greek yogurt · 1 Brazil nut (selenium)' },
     ],
-    tot:{p:275,c:452,f:93,k:3679},
-    notes:[
-      {c:'ni',h:'<strong>Dinner swap:</strong> 170g turkey breast works just as well post-workout. For salmon (150g), reduce olive oil to 0.5 tbsp.'},
-      {c:'ni',h:'Use GF tamari (not regular soy sauce). Check all seasoning blends for hidden gluten.'}
+    ingredients: [
+      { name: 'Chicken breast', qty: 200, unit: 'g', cat: 'proteins' },
+      { name: '90% lean ground beef', qty: 170, unit: 'g', cat: 'proteins' },
+      { name: 'Liquid egg whites', qty: 0.75, unit: 'cup', cat: 'proteins' },
+      { name: 'Greek yogurt (non-fat)', qty: 250, unit: 'g', cat: 'proteins' },
+      { name: 'True Nutrition protein', qty: 3, unit: 'scoop', cat: 'supplements' },
+      { name: 'Brazil nuts', qty: 1, unit: 'count', cat: 'supplements' },
+      { name: 'Gatorade (28 oz)', qty: 1, unit: 'count', cat: 'supplements' },
+      { name: 'White rice (dry)', qty: 120, unit: 'g', cat: 'grains' },
+      { name: 'GF rolled oats', qty: 40, unit: 'g', cat: 'grains' },
+      { name: 'Mixed berries (frozen)', qty: 150, unit: 'g', cat: 'produce' },
+      { name: 'Mixed veggies (bell pepper, zucchini, carrots)', qty: 200, unit: 'g', cat: 'produce' },
+      { name: 'Baby spinach', qty: 100, unit: 'g', cat: 'produce' },
+      { name: 'Olive oil', qty: 4, unit: 'tbsp', cat: 'pantry' },
+      { name: 'GF tamari', qty: 1, unit: 'use', cat: 'pantry' },
+      { name: 'Ground flaxseed', qty: 1, unit: 'tbsp', cat: 'pantry' },
+    ],
+    prep: [
+      { task: 'Cook white rice (batch)', qty: 300, unit: 'g cooked' },
+      { task: 'Cook chicken breast', qty: 200, unit: 'g cooked' },
+      { task: 'Cook 90% lean ground beef', qty: 170, unit: 'g cooked' },
+      { task: 'Prep stir-fry / roast veggies', qty: 300, unit: 'g' },
     ]
   },
-  'rest-home':{
-    label:'Rest Day — Home',
-    target:'220g P · 300g C · 95g F · ~3,000 kcal',
-    isTraining:false,
-    meals:[
-      {slot:'Meal 1 — Smoothie',name:'Morning smoothie (smaller)',
-       foods:'1 scoop True Nutrition soy and egg protein · 180g liquid egg whites · 240ml Silk unsweetened soy milk · 75g GF rolled oats · 150g mixed berries',
-       copy:'1 scoop True Nutrition soy and egg protein, 180g liquid egg whites, 240ml Silk unsweetened soy milk, 75g rolled oats, 150g mixed berries smoothie',
-       p:68,c:74,f:9,k:649},
-      {slot:'Snack 1 — Mid-morning',name:'Rice cakes, almond butter & banana',
-       foods:'30g rice cakes · 2 tbsp almond butter · 1 medium banana (120g)',
-       copy:'30g rice cakes, 2 tablespoons almond butter, 1 medium banana',
-       p:10,c:58,f:18,k:414},
-      {slot:'Meal 2 — Lunch',name:'Chicken, rice & sautéed veggies',
-       foods:'170g cooked chicken breast · 175g cooked white rice · 150g mixed veggies · 2 tbsp olive oil · garlic to taste',
-       copy:'170g cooked chicken breast, 175g cooked white rice, 150g sautéed mixed vegetables, 2 tablespoons olive oil',
-       p:60,c:61,f:33,k:768},
-      {slot:'Snack 2 — Afternoon',name:'Protein oats & berries',
-       foods:'1 scoop True Nutrition soy and egg protein · 30g GF oats (porridge) · 100g mixed berries',
-       copy:'1 scoop True Nutrition soy and egg protein mixed with 30g oats and 100g mixed berries',
-       p:35,c:32,f:2,k:284},
-      {slot:'Meal 3 — Dinner',name:'Turkey, rice & veggies',
-       foods:'170g cooked turkey breast · 225g cooked white rice · 150g mixed veggies · 2.5 tbsp olive oil · garlic & herbs',
-       copy:'170g cooked turkey breast, 225g cooked white rice, 150g mixed vegetables, 2.5 tablespoons olive oil',
-       p:56,c:75,f:38,k:868},
-      {slot:'Snack 3 — Before bed',name:'Ground beef & avocado',
-       foods:'120g cooked 90% lean ground beef · 80g fresh avocado',
-       copy:'120g cooked 90% lean ground beef, 80g fresh avocado',
-       p:33,c:7,f:24,k:364}
+  'rest-home': {
+    label: 'Rest · Home', short: 'Rest/Home', icon: '😴',
+    color: '#7c3aed', bg: '#faf5ff', category: 'rest',
+    targets: { p: 220, c: 300, f: 95, kcal: 3000 },
+    meals: [
+      { timing: 'Morning', name: 'Smoothie (smaller)', p: 63, c: 72, f: 9, kcal: 606,
+        detail: '1 scoop True Nutrition protein · ¾ cup liquid egg whites · 75g GF rolled oats · 150g mixed berries · 1 tbsp ground flaxseed' },
+      { timing: 'Mid-morning', name: 'Rice cakes + almond butter + banana', p: 10, c: 58, f: 18, kcal: 414,
+        detail: '30g rice cakes · 2 tbsp almond butter · 1 medium banana (120g)' },
+      { timing: 'Lunch', name: 'Chicken + rice + sautéed veggies', p: 60, c: 61, f: 33, kcal: 768,
+        detail: '170g cooked chicken breast · 175g cooked white rice · 100g mixed veggies · 50g baby spinach · 2 tbsp olive oil · garlic to taste' },
+      { timing: 'Afternoon', name: 'Protein oats + berries', p: 35, c: 32, f: 2, kcal: 284,
+        detail: '1 scoop True Nutrition protein · 30g GF oats · 100g mixed berries' },
+      { timing: 'Dinner', name: 'Turkey + rice + veggies', p: 56, c: 75, f: 38, kcal: 868,
+        detail: '170g cooked turkey breast · 225g cooked white rice · 100g mixed veggies · 50g baby spinach · 2.5 tbsp olive oil · garlic, herbs, ¼ tsp turmeric & pinch black pepper' },
+      { timing: 'Before bed', name: 'Greek yogurt + Brazil nut', p: 26, c: 13, f: 3, kcal: 183,
+        detail: '250g plain non-fat Greek yogurt · 1 Brazil nut (selenium)' },
     ],
-    tot:{p:262,c:307,f:124,k:3347},
-    notes:[
-      {c:'ni',h:'<strong>vs training day:</strong> 75g oats in smoothie (not 100g), smaller rice portions, more olive oil to hit the higher fat target.'},
-      {c:'ni',h:'<strong>B-day swap:</strong> Ground beef at dinner instead of turkey — keep the same olive oil amount.'}
+    ingredients: [
+      { name: 'Chicken breast', qty: 220, unit: 'g', cat: 'proteins' },
+      { name: 'Turkey breast', qty: 220, unit: 'g', cat: 'proteins' },
+      { name: 'Liquid egg whites', qty: 0.75, unit: 'cup', cat: 'proteins' },
+      { name: 'Greek yogurt (non-fat)', qty: 250, unit: 'g', cat: 'proteins' },
+      { name: 'True Nutrition protein', qty: 2, unit: 'scoop', cat: 'supplements' },
+      { name: 'Brazil nuts', qty: 1, unit: 'count', cat: 'supplements' },
+      { name: 'White rice (dry)', qty: 160, unit: 'g', cat: 'grains' },
+      { name: 'GF rolled oats', qty: 105, unit: 'g', cat: 'grains' },
+      { name: 'Rice cakes', qty: 30, unit: 'g', cat: 'grains' },
+      { name: 'Mixed berries (frozen)', qty: 250, unit: 'g', cat: 'produce' },
+      { name: 'Bananas', qty: 1, unit: 'count', cat: 'produce' },
+      { name: 'Mixed veggies (bell pepper, zucchini, carrots)', qty: 200, unit: 'g', cat: 'produce' },
+      { name: 'Baby spinach', qty: 100, unit: 'g', cat: 'produce' },
+      { name: 'Almond butter', qty: 2, unit: 'tbsp', cat: 'pantry' },
+      { name: 'Olive oil', qty: 4.5, unit: 'tbsp', cat: 'pantry' },
+      { name: 'Ground flaxseed', qty: 1, unit: 'tbsp', cat: 'pantry' },
+    ],
+    prep: [
+      { task: 'Cook white rice (batch)', qty: 400, unit: 'g cooked' },
+      { task: 'Cook chicken breast', qty: 170, unit: 'g cooked' },
+      { task: 'Cook turkey breast', qty: 170, unit: 'g cooked' },
+      { task: 'Sauté / roast veggies', qty: 300, unit: 'g' },
     ]
   },
-  'training-office':{
-    label:'Training Day — Office',
-    target:'220g P · 430g C · 85g F · ~3,450 kcal',
-    isTraining:true,
-    meals:[
-      {slot:'Meal 1 — Smoothie (home)',name:'Morning smoothie',
-       foods:'1 scoop True Nutrition soy and egg protein · 180g liquid egg whites · 240ml Silk unsweetened soy milk · 100g GF rolled oats · 200g mixed berries',
-       copy:'1 scoop True Nutrition soy and egg protein, 180g liquid egg whites, 240ml Silk unsweetened soy milk, 100g rolled oats, 200g mixed berries smoothie',
-       p:72,c:97,f:11,k:767},
-      {slot:'Snack 1 — Morning (office)',name:'Protein shake & banana',
-       foods:'1 scoop True Nutrition soy and egg protein in water · 1 banana (bring from home)',
-       copy:'1 scoop True Nutrition soy and egg protein shake, 1 medium banana',
-       p:31,c:27,f:0,k:225},
-      {slot:'Meal 2 — Lunch (cafeteria)',name:'Protein + large starch + veggies',
-       foods:'Aim for: grilled chicken or turkey (~150g) · large rice or potato serving · vegetables — cooking oil included',
-       copy:'150g grilled chicken breast, large serving of white rice approximately 300g cooked, mixed vegetables, cooked in oil',
-       p:57,c:96,f:20,k:796,est:true},
-      {slot:'Snack 2 — Afternoon (office)',name:'GoMacro PB Chocolate Chip bar',
-       foods:'GoMacro Peanut Butter Chocolate Chip MacroBar (70g bar)',
-       copy:'GoMacro Peanut Butter Chocolate Chip MacroBar 70g',
-       p:11,c:35,f:13,k:290},
-      {slot:'Snack 2 — Pre-workout (home)',name:'Protein & cream of rice',
-       foods:'1 scoop True Nutrition soy and egg protein · 60g cream of rice (cooked with water)',
-       copy:'1 scoop True Nutrition soy and egg protein, 60g cream of rice cooked',
-       p:33,c:48,f:0,k:326},
-      {slot:'Intra-workout',name:'HBCD & Gatorade',
-       foods:'1 scoop True Nutrition highly branched cyclic dextrin · 1 scoop powdered Gatorade · mixed in water',
-       copy:'True Nutrition highly branched cyclic dextrin 1 scoop, Gatorade powder 1 scoop in water',
-       p:0,c:46,f:0,k:180},
-      {slot:'Meal 3 — Post-workout dinner (home)',name:'Chicken, rice & roasted veggies',
-       foods:'170g cooked chicken breast · 300g cooked white rice · 150g mixed veggies · 1 tbsp olive oil · garlic & GF tamari',
-       copy:'170g cooked chicken breast, 300g cooked white rice, 150g roasted mixed vegetables, 1 tablespoon olive oil',
-       p:62,c:76,f:19,k:705},
-      {slot:'Snack 3 — Before bed',name:'Ground beef & avocado',
-       foods:'120g cooked 90% lean ground beef · 80g fresh avocado',
-       copy:'120g cooked 90% lean ground beef, 80g fresh avocado',
-       p:33,c:7,f:24,k:364}
+  'training-office': {
+    label: 'Training · Office', short: 'Train/Office', icon: '🏋️🏢',
+    color: '#2563eb', bg: '#eff6ff', category: 'training',
+    targets: { p: 260, c: 195, f: 87, kcal: 2600 },
+    meals: [
+      { timing: 'Morning (home)', name: 'Smoothie', p: 72, c: 49, f: 7, kcal: 579,
+        detail: '1.5 scoops True Nutrition soy & egg protein · ¾ cup liquid egg whites · 40g GF rolled oats · 150g mixed berries · 1 tbsp ground flaxseed' },
+      { timing: 'Lunch (cafeteria)', name: 'Protein + moderate starch + veggies', p: 60, c: 35, f: 18, kcal: 546,
+        detail: 'Grilled chicken or turkey (~175g) · moderate rice or potato portion · vegetables.\nAvoid: bread, pasta, cream sauces, fried foods.\nTell server: "gluten-free, no dairy."' },
+      { timing: 'Afternoon (office)', name: 'GoMacro PB Choc Chip bar', p: 11, c: 35, f: 13, kcal: 290,
+        detail: 'GoMacro Peanut Butter Chocolate Chip MacroBar (70g bar).' },
+      { timing: 'Intra-workout', name: 'Gatorade', p: 0, c: 52, f: 0, kcal: 200,
+        detail: '28 oz Gatorade Thirst Quencher (bring to gym).' },
+      { timing: 'Post-workout', name: 'Protein shake', p: 45, c: 0, f: 0, kcal: 180,
+        detail: '1.5 scoops True Nutrition soy & egg protein in water.' },
+      { timing: 'Dinner (home)', name: 'Chicken + rice + roasted veggies', p: 46, c: 11, f: 46, kcal: 626,
+        detail: '175g cooked chicken breast · 50g cooked white rice · 100g mixed veggies · 50g baby spinach · 3 tbsp olive oil · garlic & GF tamari' },
+      { timing: 'Before bed', name: 'Greek yogurt + Brazil nut', p: 26, c: 13, f: 3, kcal: 183,
+        detail: '250g plain non-fat Greek yogurt · 1 Brazil nut (selenium)' },
     ],
-    tot:{p:299,c:432,f:87,k:3653},
-    totNote:'* Cafeteria meal estimated',
-    notes:[
-      {c:'nw',h:'<strong>~55g carb gap:</strong> Keep 30g GF crackers or rice cakes at your desk (+25g C) and add an extra tbsp olive oil at dinner (+14g F) to close the gap.'},
-      {c:'ni',h:'<strong>Cafeteria:</strong> Lean protein (grilled) + large rice or potato. Skip bread, pasta, cream sauces, shared-fryer items.'}
+    ingredients: [
+      { name: 'Chicken breast', qty: 175, unit: 'g', cat: 'proteins' },
+      { name: 'Liquid egg whites', qty: 0.75, unit: 'cup', cat: 'proteins' },
+      { name: 'Greek yogurt (non-fat)', qty: 250, unit: 'g', cat: 'proteins' },
+      { name: 'True Nutrition protein', qty: 3, unit: 'scoop', cat: 'supplements' },
+      { name: 'GoMacro PB Choc Chip bar', qty: 1, unit: 'count', cat: 'supplements' },
+      { name: 'Brazil nuts', qty: 1, unit: 'count', cat: 'supplements' },
+      { name: 'Gatorade (28 oz)', qty: 1, unit: 'count', cat: 'supplements' },
+      { name: 'White rice (dry)', qty: 20, unit: 'g', cat: 'grains' },
+      { name: 'GF rolled oats', qty: 40, unit: 'g', cat: 'grains' },
+      { name: 'Mixed berries (frozen)', qty: 150, unit: 'g', cat: 'produce' },
+      { name: 'Mixed veggies (bell pepper, zucchini, carrots)', qty: 100, unit: 'g', cat: 'produce' },
+      { name: 'Baby spinach', qty: 100, unit: 'g', cat: 'produce' },
+      { name: 'Olive oil', qty: 3, unit: 'tbsp', cat: 'pantry' },
+      { name: 'GF tamari', qty: 1, unit: 'use', cat: 'pantry' },
+      { name: 'Ground flaxseed', qty: 1, unit: 'tbsp', cat: 'pantry' },
+    ],
+    prep: [
+      { task: 'Cook chicken breast (dinner)', qty: 175, unit: 'g cooked' },
+      { task: 'Roast veggies (dinner only)', qty: 150, unit: 'g' },
     ]
   },
-  'rest-office':{
-    label:'Rest Day — Office',
-    target:'220g P · 300g C · 95g F · ~3,000 kcal',
-    isTraining:false,
-    meals:[
-      {slot:'Meal 1 — Smoothie (home)',name:'Morning smoothie (smaller)',
-       foods:'1 scoop True Nutrition soy and egg protein · 180g liquid egg whites · 240ml Silk unsweetened soy milk · 75g GF rolled oats · 150g mixed berries',
-       copy:'1 scoop True Nutrition soy and egg protein, 180g liquid egg whites, 240ml Silk unsweetened soy milk, 75g rolled oats, 150g mixed berries smoothie',
-       p:68,c:74,f:9,k:649},
-      {slot:'Snack 1 — Morning (office)',name:'Protein shake',
-       foods:'1 scoop True Nutrition soy and egg protein in water',
-       copy:'1 scoop True Nutrition soy and egg protein shake in water',
-       p:30,c:0,f:0,k:120},
-      {slot:'Meal 2 — Lunch (cafeteria)',name:'Protein + moderate starch + veggies',
-       foods:'Aim for: grilled chicken or turkey (~150g) · moderate rice or potato serving · vegetables — cooking oil included',
-       copy:'150g grilled chicken breast, medium serving white rice approximately 200g cooked, mixed vegetables, cooked in oil',
-       p:54,c:68,f:23,k:700,est:true},
-      {slot:'Snack 2 — Afternoon (office)',name:'GoMacro PB Chocolate Chip bar',
-       foods:'GoMacro Peanut Butter Chocolate Chip MacroBar (70g bar)',
-       copy:'GoMacro Peanut Butter Chocolate Chip MacroBar 70g',
-       p:11,c:35,f:13,k:290},
-      {slot:'Meal 3 — Dinner (home)',name:'Chicken or turkey, rice & veggies',
-       foods:'180g cooked chicken or turkey breast · 250g cooked white rice · 150g mixed veggies · 3 tbsp olive oil · garlic & herbs',
-       copy:'180g cooked chicken breast, 250g cooked white rice, 150g mixed vegetables, 3 tablespoons olive oil',
-       p:65,c:82,f:46,k:998},
-      {slot:'Snack 3 — Before bed',name:'Ground beef & avocado',
-       foods:'120g cooked 90% lean ground beef · 80g fresh avocado',
-       copy:'120g cooked 90% lean ground beef, 80g fresh avocado',
-       p:33,c:7,f:24,k:364}
+  'rest-office': {
+    label: 'Rest · Office', short: 'Rest/Office', icon: '😴🏢',
+    color: '#d97706', bg: '#fffbeb', category: 'rest',
+    targets: { p: 220, c: 300, f: 95, kcal: 3000 },
+    meals: [
+      { timing: 'Morning (home)', name: 'Smoothie (smaller)', p: 63, c: 72, f: 9, kcal: 606,
+        detail: '1 scoop True Nutrition protein · ¾ cup liquid egg whites · 75g GF rolled oats · 150g mixed berries · 1 tbsp ground flaxseed' },
+      { timing: 'Morning (office)', name: 'Protein shake', p: 30, c: 0, f: 0, kcal: 120,
+        detail: '1 scoop True Nutrition protein in water only.' },
+      { timing: 'Lunch (cafeteria)', name: 'Protein + moderate starch + veggies', p: 54, c: 68, f: 23, kcal: 700,
+        detail: 'Same strategy as training office but smaller starch portion.\nTell server: "gluten-free, no dairy."' },
+      { timing: 'Afternoon (office)', name: 'GoMacro PB Choc Chip bar', p: 11, c: 35, f: 13, kcal: 290,
+        detail: 'GoMacro Peanut Butter Chocolate Chip MacroBar (70g).' },
+      { timing: 'Dinner (home)', name: 'Chicken or turkey + rice + veggies', p: 65, c: 82, f: 46, kcal: 998,
+        detail: '180g cooked chicken or turkey breast · 250g cooked white rice · 100g mixed veggies · 50g baby spinach · 3 tbsp olive oil · garlic, herbs, ¼ tsp turmeric & pinch black pepper\nNote: 3 tbsp olive oil is intentional — rest days target 95g fat.' },
+      { timing: 'Before bed', name: 'Greek yogurt + Brazil nut', p: 26, c: 13, f: 3, kcal: 183,
+        detail: '250g plain non-fat Greek yogurt · 1 Brazil nut (selenium)' },
     ],
-    tot:{p:261,c:266,f:115,k:3121},
-    totNote:'* Cafeteria meal estimated',
-    notes:[
-      {c:'nw',h:'<strong>~45g carb gap:</strong> Pair your GoMacro bar with a banana in the afternoon to get closer to 300g.'},
-      {c:'ni',h:'<strong>Fat target:</strong> The 3 tbsp olive oil at dinner is intentional — rest days need higher fat (95g).'}
+    ingredients: [
+      { name: 'Chicken breast', qty: 235, unit: 'g', cat: 'proteins' },
+      { name: 'Liquid egg whites', qty: 0.75, unit: 'cup', cat: 'proteins' },
+      { name: 'Greek yogurt (non-fat)', qty: 250, unit: 'g', cat: 'proteins' },
+      { name: 'True Nutrition protein', qty: 2, unit: 'scoop', cat: 'supplements' },
+      { name: 'GoMacro PB Choc Chip bar', qty: 1, unit: 'count', cat: 'supplements' },
+      { name: 'Brazil nuts', qty: 1, unit: 'count', cat: 'supplements' },
+      { name: 'White rice (dry)', qty: 100, unit: 'g', cat: 'grains' },
+      { name: 'GF rolled oats', qty: 75, unit: 'g', cat: 'grains' },
+      { name: 'Mixed berries (frozen)', qty: 150, unit: 'g', cat: 'produce' },
+      { name: 'Mixed veggies (bell pepper, zucchini, carrots)', qty: 100, unit: 'g', cat: 'produce' },
+      { name: 'Baby spinach', qty: 50, unit: 'g', cat: 'produce' },
+      { name: 'Olive oil', qty: 3, unit: 'tbsp', cat: 'pantry' },
+      { name: 'Ground flaxseed', qty: 1, unit: 'tbsp', cat: 'pantry' },
+    ],
+    prep: [
+      { task: 'Cook white rice (batch)', qty: 250, unit: 'g cooked' },
+      { task: 'Cook chicken or turkey breast', qty: 180, unit: 'g cooked' },
+      { task: 'Roast veggies (dinner only)', qty: 150, unit: 'g' },
     ]
   },
-  'weekend':{
-    label:'Weekend — Eating Out',
-    target:'Training or rest day targets based on your schedule',
-    isTraining:null,
-    meals:null,
-    tot:null,
-    notes:[
-      {c:'ns',h:'<strong>Keep the smoothie:</strong> Make it at home before going out. Anchors protein and morning carbs.'},
-      {c:'ni',h:'<strong>What to order:</strong> Grilled protein (chicken, steak, shrimp, fish) + rice or potato. Bowl-format meals are ideal.'},
-      {c:'nw',h:'<strong>Avoid:</strong> Cream sauces, cheese, regular soy sauce, flour tortillas, pasta, breaded proteins. Say: "gluten-free, no dairy."'},
-      {c:'ni',h:'<strong>Portions:</strong> Palm-size protein ≈ 30–50g P · fist of rice ≈ 50–70g C · oil adds ~15–20g F. Log in MacroFactor after.'},
-      {c:'ni',h:'<strong>Training day:</strong> Order bigger — extra rice or double protein. Rest day: normal portions.'},
-      {c:'ns',h:'<strong>Good spots:</strong> Asian (rice, GF tamari) · Mexican (rice bowls, corn tortillas) · Mediterranean (rice + grilled, skip hummus) · American grill (steak or chicken + potato).'}
-    ]
+  'weekend': {
+    label: 'Weekend', short: 'Weekend', icon: '🌯',
+    color: '#db2777', bg: '#fdf2f8', category: 'weekend',
+    targets: { p: 220, c: 300, f: 85, kcal: 3000 },
+    meals: [
+      { timing: 'Morning', name: 'Smoothie (make at home first)', p: 65, c: 84, f: 10, kcal: 665,
+        detail: '1 scoop True Nutrition protein · ¾ cup liquid egg whites · 85g GF oats · 175g mixed berries · 1 tbsp ground flaxseed\nAnchors your protein and morning carbs before going out.' },
+      { timing: 'Out / flexible', name: 'Grilled protein + rice or potato', p: 40, c: 75, f: 20, kcal: 640,
+        detail: 'What to order: Grilled protein (chicken, steak, shrimp, fish) + rice or potato sides. Bowl-format restaurants are ideal.\nAvoid: cream sauces · cheese · regular soy sauce · flour tortillas · pasta · breaded proteins.\nTell server: "gluten-free, no dairy."' },
+      { timing: 'Flexible', name: 'Track & adjust in MacroFactor', p: null, c: null, f: null, kcal: null,
+        detail: 'Portion guide: Palm-size protein ≈ 30–50g P · Fist of rice ≈ 50–70g C · Cooking oil ≈ 15–20g F.\n\nGreat restaurant types:\n• Asian — rice dishes, grilled meats, GF tamari\n• Mexican — rice bowls, corn tortillas (not flour)\n• Mediterranean — rice + grilled proteins (skip hummus — it\'s a legume)\n• American grill — steak or chicken + potato' },
+    ],
+    ingredients: [
+      { name: 'Liquid egg whites', qty: 0.75, unit: 'cup', cat: 'proteins' },
+      { name: 'True Nutrition protein', qty: 1, unit: 'scoop', cat: 'supplements' },
+      { name: 'GF rolled oats', qty: 85, unit: 'g', cat: 'grains' },
+      { name: 'Mixed berries (frozen)', qty: 175, unit: 'g', cat: 'produce' },
+      { name: 'Ground flaxseed', qty: 1, unit: 'tbsp', cat: 'pantry' },
+    ],
+    prep: []
   }
 };
 
-var GROCERY={
-  'training-home':{
-    'Protein powder':{a:2,u:'scoops'},'True Nutrition HBCD':{a:1,u:'scoops'},'Gatorade powder':{a:1,u:'scoops'},'Liquid egg whites':{a:180,u:'g'},
-    'GF rolled oats':{a:150,u:'g'},'Mixed berries (frozen)':{a:200,u:'g'},
-    'Bananas':{a:2,u:''},'Rice cakes':{a:50,u:'g'},'Almond butter':{a:32,u:'g'},
-    'Chicken breast (raw)':{a:220,u:'g'},'Ground beef 90% lean (raw)':{a:165,u:'g'},
-    'White rice (dry)':{a:200,u:'g'},'Mixed veggies':{a:300,u:'g'},'Olive oil':{a:38,u:'ml'},
-    'Avocado':{a:80,u:'g'},'Silk unsweetened soy milk':{a:240,u:'ml-bev'}
-  },
-  'rest-home':{
-    'Protein powder':{a:2,u:'scoops'},'Liquid egg whites':{a:180,u:'g'},
-    'GF rolled oats':{a:105,u:'g'},'Mixed berries (frozen)':{a:250,u:'g'},
-    'Bananas':{a:1,u:''},'Rice cakes':{a:30,u:'g'},'Almond butter':{a:32,u:'g'},
-    'Chicken breast (raw)':{a:110,u:'g'},'Turkey breast (raw)':{a:190,u:'g'},
-    'Ground beef 90% lean (raw)':{a:165,u:'g'},
-    'White rice (dry)':{a:130,u:'g'},'Mixed veggies':{a:300,u:'g'},'Olive oil':{a:67,u:'ml'},
-    'Avocado':{a:80,u:'g'},'Silk unsweetened soy milk':{a:240,u:'ml-bev'}
-  },
-  'training-office':{
-    'Protein powder':{a:3,u:'scoops'},'True Nutrition HBCD':{a:1,u:'scoops'},'Gatorade powder':{a:1,u:'scoops'},'Liquid egg whites':{a:180,u:'g'},
-    'GF rolled oats':{a:100,u:'g'},'Mixed berries (frozen)':{a:200,u:'g'},
-    'Bananas':{a:1,u:''},'GoMacro bars':{a:1,u:'bar'},
-    'Chicken breast (raw)':{a:165,u:'g'},'Ground beef 90% lean (raw)':{a:165,u:'g'},
-    'White rice (dry)':{a:130,u:'g'},'Mixed veggies':{a:150,u:'g'},'Olive oil':{a:27,u:'ml'},
-    'Avocado':{a:80,u:'g'},'Silk unsweetened soy milk':{a:240,u:'ml-bev'}
-  },
-  'rest-office':{
-    'Protein powder':{a:2,u:'scoops'},'Liquid egg whites':{a:180,u:'g'},
-    'GF rolled oats':{a:75,u:'g'},'Mixed berries (frozen)':{a:150,u:'g'},
-    'GoMacro bars':{a:1,u:'bar'},
-    'Chicken or turkey breast (raw)':{a:200,u:'g'},'Ground beef 90% lean (raw)':{a:165,u:'g'},
-    'White rice (dry)':{a:83,u:'g'},'Mixed veggies':{a:150,u:'g'},'Olive oil':{a:40,u:'ml'},
-    'Avocado':{a:80,u:'g'},'Silk unsweetened soy milk':{a:240,u:'ml-bev'}
-  }
+const CAT_META = {
+  proteins:     { label: '🥩 Proteins',     order: 1 },
+  grains:       { label: '🌾 Grains',       order: 2 },
+  produce:      { label: '🥦 Produce',      order: 3 },
+  pantry:       { label: '🫙 Pantry',       order: 4 },
+  supplements:  { label: '💊 Supplements',  order: 5 },
 };
 
-var GROCERY_CATS=[
-  {label:'Supplements',items:['Protein powder','GoMacro bars','True Nutrition HBCD','Gatorade powder']},
-  {label:'Proteins',items:['Chicken breast (raw)','Turkey breast (raw)','Chicken or turkey breast (raw)','Ground beef 90% lean (raw)']},
-  {label:'Grains',items:['GF rolled oats','White rice (dry)','Rice cakes']},
-  {label:'Produce',items:['Mixed berries (frozen)','Bananas','Mixed veggies','Avocado']},
-  {label:'Fats & pantry',items:['Almond butter','Olive oil','Liquid egg whites','Silk unsweetened soy milk']}
-];
+// ─────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────
+const today = new Date();
+const todayDow = (today.getDay() + 6) % 7; // 0=Mon … 6=Sun
 
-function renderMeals(plan){
-  if(!plan.meals){
-    var h='<p style="font-size:14px;font-weight:500;margin:0 0 6px;color:#111827">Weekend eating-out guidelines</p>';
-    h+='<p style="font-size:12px;color:#9ca3af;margin:0 0 14px;line-height:1.6">No fixed plan — use these guidelines when eating out with friends.</p>';
-    plan.notes.forEach(function(n){h+='<div class="note '+n.c+'">'+n.h+'</div>';});
-    return h;
+const state = {
+  activeTab: 'meals',
+  schedule: ['training-office','rest-office','training-office','training-home','rest-home','weekend','weekend'],
+  selectedDay: todayDow,
+  openMeals: {},
+  prepChecked: {},
+  groceryChecked: {},
+  chatMessages: [],
+  chatLoading: false,
+};
+
+// ─────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────
+function getWeekDates() {
+  const dates = [];
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - todayDow);
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    dates.push(d);
   }
-  var h='<div class="note ni" style="margin-bottom:14px;font-size:12px">Target: '+plan.target+'</div>';
-  plan.meals.forEach(function(m){
-    h+='<div class="section-label">'+m.slot+'</div>';
-    h+='<div class="mcard">';
-    h+='<div class="mcard-top"><span class="mname">'+m.name+(m.est?' <span class="est">(estimated)</span>':'')+'</span>';
-    h+='<button class="copy-btn mf" data-copy="'+encodeURIComponent(m.copy)+'" title="Copy MacroFactor-formatted description">MF</button></div>';
-    h+='<div class="mfoods-row"><p class="mfoods">'+m.foods+'</p>';
-    h+='<button class="copy-btn" data-copy="'+encodeURIComponent(m.foods)+'" title="Copy ingredients">Copy</button></div>';
-    h+='<div class="chips"><span class="chip cp">'+m.p+'g P</span><span class="chip cc">'+m.c+'g C</span><span class="chip cf">'+m.f+'g F</span><span class="chip ck">'+m.k+' kcal</span></div>';
-    h+='</div>';
-  });
-  if(plan.tot){
-    var t=plan.tot;
-    h+='<div class="totbox"><p class="tottitle">Daily totals</p><p class="totsub">'+(plan.totNote||'Approximate — fine-tune in MacroFactor')+'</p>';
-    h+='<div class="totgrid">';
-    h+='<div class="totcell"><div class="totval" style="color:#065f46">'+t.p+'g</div><div class="totlbl">Protein</div></div>';
-    h+='<div class="totcell"><div class="totval" style="color:#1e40af">'+t.c+'g</div><div class="totlbl">Carbs</div></div>';
-    h+='<div class="totcell"><div class="totval" style="color:#92400e">'+t.f+'g</div><div class="totlbl">Fat</div></div>';
-    h+='<div class="totcell"><div class="totval" style="color:#374151">'+t.k.toLocaleString()+'</div><div class="totlbl">Calories</div></div>';
-    h+='</div></div>';
-  }
-  if(plan.notes&&plan.notes.length){
-    h+='<div style="margin-top:12px">';
-    plan.notes.forEach(function(n){h+='<div class="note '+n.c+'">'+n.h+'</div>';});
-    h+='</div>';
-  }
-  return h;
+  return dates;
 }
 
-function attachCopyButtons(container){
-  container.querySelectorAll('.copy-btn').forEach(function(btn){
-    var orig=btn.textContent;
-    btn.addEventListener('click',function(){
-      var text=decodeURIComponent(btn.getAttribute('data-copy'));
-      navigator.clipboard.writeText(text).then(function(){
-        btn.textContent='✓';
-        btn.classList.add('ok');
-        setTimeout(function(){btn.textContent=orig;btn.classList.remove('ok');},2000);
-      }).catch(function(){
-        btn.textContent='✓';
-        setTimeout(function(){btn.textContent=orig;},1500);
-      });
+function fmtDate(d) {
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function fmtQty(qty, unit) {
+  const r = Math.round(qty * 4) / 4;
+  if (unit === 'count')  return `×${Math.round(qty)}`;
+  if (unit === 'cup')    return `${r} cup${qty !== 1 ? 's' : ''}`;
+  if (unit === 'scoop')  return `${Math.round(qty)} scoop${qty !== 1 ? 's' : ''}`;
+  if (unit === 'tbsp')   return `${Math.round(qty * 2) / 2} tbsp`;
+  if (unit === 'use')    return 'as needed';
+  if (unit === 'g')      return `${Math.round(qty)}g`;
+  return `${qty} ${unit}`;
+}
+
+function svgCheck() {
+  return `<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><polyline points="2,7 5.5,10.5 11,3" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+
+function computeGrocery() {
+  const map = {};
+  state.schedule.forEach(pid => {
+    if (!pid) return;
+    PLAN_TYPES[pid].ingredients.forEach(ing => {
+      const key = `${ing.cat}||${ing.name}||${ing.unit}`;
+      if (!map[key]) map[key] = { name: ing.name, qty: 0, unit: ing.unit, cat: ing.cat };
+      map[key].qty += ing.qty;
     });
   });
+  return Object.values(map);
 }
 
-function renderToday(){
-  var el=document.getElementById('tab-today');
-  var today=new Date();
-  var dayIdx=today.getDay();
-  var dateStr=today.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
-  var planKey=getPlanKey(dayIdx);
-  var plan=PLANS[planKey];
-  var isConfigured=true;
-
-  var heroHtml='<div class="today-hero">';
-  heroHtml+='<div class="today-date">'+dateStr+'</div>';
-  heroHtml+='<div class="today-plan">'+plan.label+'</div>';
-  if(!isConfigured){
-    heroHtml+='<p class="no-schedule">Set your schedule above to auto-detect today\'s plan.</p>';
-  } else {
-    var badgeCls=plan.isTraining?'today-badge':'today-badge rest-badge';
-    heroHtml+='<span class="'+badgeCls+'">'+(plan.isTraining?'Training day':'Rest day')+'</span>';
-  }
-  heroHtml+='</div>';
-
-  el.innerHTML=heroHtml+renderMeals(plan);
-  attachCopyButtons(el);
-}
-
-function renderBrowse(selectedKey){
-  var el=document.getElementById('tab-browse');
-  var keys=['training-home','rest-home','training-office','rest-office','weekend'];
-  var labels=['Training / home','Rest / home','Training / office','Rest / office','Weekend'];
-  var opts=keys.map(function(k,i){
-    return'<option value="'+k+'"'+(k===selectedKey?' selected':'')+'>'+labels[i]+'</option>';
-  }).join('');
-  var pickerHtml='<div class="plan-picker"><label>Viewing:</label><select id="planSelect">'+opts+'</select></div>';
-  el.innerHTML=pickerHtml+renderMeals(PLANS[selectedKey]);
-  attachCopyButtons(el);
-  el.querySelector('#planSelect').addEventListener('change',function(){
-    renderBrowse(this.value);
-  });
-}
-
-function renderGroceries(){
-  var el=document.getElementById('tab-groceries');
-  var planCounts={'training-home':0,'rest-home':0,'training-office':0,'rest-office':0};
-  for(var d=0;d<7;d++){
-    var k=getPlanKey(d);
-    if(planCounts[k]!==undefined)planCounts[k]++;
-  }
-
-  var countParts=[];
-  if(planCounts['training-home']>0)countParts.push(planCounts['training-home']+'× training/home');
-  if(planCounts['training-office']>0)countParts.push(planCounts['training-office']+'× training/office');
-  if(planCounts['rest-home']>0)countParts.push(planCounts['rest-home']+'× rest/home');
-  if(planCounts['rest-office']>0)countParts.push(planCounts['rest-office']+'× rest/office');
-
-  var totals={};
-  var units={};
-  Object.keys(planCounts).forEach(function(planKey){
-    var count=planCounts[planKey];
-    if(count===0||!GROCERY[planKey])return;
-    Object.keys(GROCERY[planKey]).forEach(function(item){
-      var d=GROCERY[planKey][item];
-      if(!totals[item]){totals[item]=0;units[item]=d.u;}
-      totals[item]+=d.a*count;
+function computePrep() {
+  const map = {};
+  state.schedule.forEach(pid => {
+    if (!pid) return;
+    PLAN_TYPES[pid].prep.forEach(p => {
+      if (!map[p.task]) map[p.task] = { task: p.task, qty: 0, unit: p.unit };
+      map[p.task].qty += p.qty;
     });
   });
+  return Object.values(map);
+}
 
-  var schedBadge='<div class="schedule-badge">Your week: '+countParts.join(' · ')+'</div>';
-  var subHtml='<p class="grocery-sub">Weekly quantities based on your current schedule. Does not include weekend eating-out meals.</p>';
+// ─────────────────────────────────────────────
+// RENDER
+// ─────────────────────────────────────────────
+function render() {
+  const el = document.getElementById('content');
+  if (state.activeTab === 'schedule')    el.innerHTML = renderSchedule();
+  else if (state.activeTab === 'meals')  el.innerHTML = renderMeals();
+  else if (state.activeTab === 'prep')   el.innerHTML = renderPrep();
+  else if (state.activeTab === 'grocery') el.innerHTML = renderGrocery();
+  else if (state.activeTab === 'ask')    el.innerHTML = renderAsk();
 
-  var cardsHtml='';
-  GROCERY_CATS.forEach(function(cat){
-    var rows='';
-    cat.items.forEach(function(item){
-      if(!totals[item])return;
-      var qty=totals[item];
-      var unit=units[item]||'';
-      var display=Math.round(qty*10)/10;
-      var qtyStr;
-      if(unit==='scoops'){qtyStr=display+' scoops';}
-      else if(unit==='ml-bev'){
-        var flozB=Math.round(qty/29.574*10)/10;
-        var cupsB=Math.round(qty/240*10)/10;
-        qtyStr=flozB+' fl oz ('+cupsB+' cup'+(cupsB===1?'':'s')+') per day';
-      }
-      else if(unit==='ml'&&item.indexOf('egg')>=0){
-        var floz=Math.round(qty/29.574*10)/10;
-        var cups=Math.round(qty/240*4)/4;
-        qtyStr=floz+' fl oz ('+cups+' cups)';
-      }
-      else if(unit==='ml'){
-        var tbsp=Math.round(qty/14.787);
-        var floz2=Math.round(qty/29.574*10)/10;
-        qtyStr=tbsp+' tbsp (~'+floz2+' fl oz)';
-      }
-      else if(unit==='g'){
-        var gRound=Math.round(qty);
-        var imperial;
-        if(qty>=454){var lbs=Math.round(qty/453.592*10)/10;imperial='~'+lbs+' lb';}
-        else{var oz=Math.round(qty/28.3495*10)/10;imperial='~'+oz+' oz';}
-        qtyStr=gRound+'g ('+imperial+')';
-      }
-      else if(unit==='bar'){qtyStr=display+(display===1?' bar':' bars');}
-      else{qtyStr=display+(unit?' '+unit:'');}
-      rows+='<div class="grocery-row"><span class="grocery-name">'+item+'</span><span class="grocery-qty">'+qtyStr+'</span></div>';
+  if (state.activeTab === 'ask') scrollChatToBottom();
+
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`tab-${state.activeTab}`).classList.add('active');
+}
+
+function renderSchedule() {
+  const dates = getWeekDates();
+
+  // Week grid
+  let html = `<div class="card">
+    <div class="section-label" style="margin-bottom:14px">Week of ${fmtDate(dates[0])}</div>
+    <div class="week-grid">`;
+  dates.forEach((d, i) => {
+    const isToday   = i === todayDow;
+    const isSelected = i === state.selectedDay;
+    const pid = state.schedule[i];
+    const plan = pid ? PLAN_TYPES[pid] : null;
+    const dotClass = plan ? plan.category : '';
+    html += `<div class="day-cell${isToday ? ' today' : ''}${isSelected ? ' selected' : ''}" onclick="selectDay(${i})">
+      <div class="day-label">${DAYS[i]}</div>
+      <div class="day-num">${d.getDate()}</div>
+      <div class="day-plan-dot ${dotClass}"></div>
+    </div>`;
+  });
+  html += `</div></div>`;
+
+  // Plan picker for selected day
+  const selDate = dates[state.selectedDay];
+  html += `<div class="card">
+    <div class="section-label" style="margin-bottom:12px">${DAYS[state.selectedDay]}, ${fmtDate(selDate)}</div>
+    <div class="plan-picker">`;
+
+  Object.entries(PLAN_TYPES).forEach(([id, plan]) => {
+    const sel = state.schedule[state.selectedDay] === id;
+    html += `<div class="plan-option${sel ? ' selected' : ''}"
+      style="${sel ? `border-color:${plan.color};background:${plan.bg}` : ''}"
+      onclick="setPlan(${state.selectedDay},'${id}')">
+      <div class="plan-icon">${plan.icon}</div>
+      <div class="plan-name" style="color:${sel ? plan.color : 'var(--text)'}">${plan.short}</div>
+      <div class="plan-macros">${plan.targets.p}P · ${plan.targets.c}C · ${plan.targets.f}F</div>
+    </div>`;
+  });
+
+  html += `</div></div>`;
+
+  // Week summary
+  const counts = {};
+  state.schedule.forEach(p => { if (p) counts[p] = (counts[p]||0)+1; });
+  html += `<div class="card">
+    <div class="section-label">This week</div>
+    <div class="week-summary">`;
+  Object.entries(counts).forEach(([id, n]) => {
+    const plan = PLAN_TYPES[id];
+    html += `<span class="week-tag" style="background:${plan.bg};color:${plan.color}">${plan.icon} ${plan.short} ×${n}</span>`;
+  });
+  html += `</div></div>`;
+
+  return html;
+}
+
+function renderMeals() {
+  const dates = getWeekDates();
+
+  // Day strip
+  let html = `<div class="day-nav">`;
+  dates.forEach((d, i) => {
+    const isToday = i === todayDow;
+    const isSel   = i === state.selectedDay;
+    html += `<button class="day-nav-btn${isSel ? ' active' : ''}${isToday && !isSel ? ' is-today' : ''}"
+      onclick="selectDay(${i})">${DAYS[i]} ${d.getDate()}</button>`;
+  });
+  html += `</div>`;
+
+  // Plan switcher row
+  html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+    <div style="flex:1;display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:1px">`;
+  Object.entries(PLAN_TYPES).forEach(([id, plan]) => {
+    const sel = state.schedule[state.selectedDay] === id;
+    html += `<button onclick="setPlan(${state.selectedDay},'${id}')"
+      style="flex-shrink:0;padding:6px 11px;border-radius:20px;border:2px solid ${sel?plan.color:'var(--border)'};background:${sel?plan.bg:'transparent'};color:${sel?plan.color:'var(--muted)'};font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;transition:all 0.15s;-webkit-tap-highlight-color:transparent">
+      ${plan.icon} ${plan.short}
+    </button>`;
+  });
+  html += `</div>
+    <button onclick="setTab('schedule')" style="flex-shrink:0;display:flex;align-items:center;gap:4px;padding:7px 11px;border-radius:20px;border:1.5px solid var(--border);background:var(--card);color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Week
+    </button>
+  </div>`;
+
+  const pid = state.schedule[state.selectedDay];
+  if (!pid) {
+    return html + `<div class="empty-state"><div class="icon">📅</div><p>Tap a plan type above to assign today.</p></div>`;
+  }
+
+  const plan = PLAN_TYPES[pid];
+  const totals = plan.meals.reduce((s, m) => ({
+    p: s.p+(m.p||0), c: s.c+(m.c||0), f: s.f+(m.f||0), kcal: s.kcal+(m.kcal||0)
+  }), {p:0,c:0,f:0,kcal:0});
+
+  // Header card — compact
+  html += `<div class="card" style="padding:12px 14px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:7px">
+        <span style="font-size:18px">${plan.icon}</span>
+        <span style="font-size:14px;font-weight:800">${plan.label}</span>
+      </div>
+      <span style="font-size:12px;color:var(--muted);font-weight:600">${totals.kcal.toLocaleString()} kcal</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+      ${compactMacro('Protein', totals.p, plan.targets.p, '#ef4444')}
+      ${compactMacro('Carbs',   totals.c, plan.targets.c, '#f59e0b')}
+      ${compactMacro('Fat',     totals.f, plan.targets.f, '#8b5cf6')}
+    </div>
+  </div>`;
+
+  // Meals
+  html += `<div class="card">`;
+  plan.meals.forEach((meal, mi) => {
+    const key = `${pid}-${mi}`;
+    const open = !!state.openMeals[key];
+    const hasNums = meal.p !== null;
+    const copyText = `${meal.name}\n${meal.detail}${hasNums ? `\n\nP: ${meal.p}g  C: ${meal.c}g  F: ${meal.f}g  |  ${meal.kcal} kcal` : ''}`;
+    const escapedCopy = copyText.replace(/\\/g,'\\\\').replace(/`/g,'\\`').replace(/\$/g,'\\$');
+    html += `<div class="meal-row" onclick="toggleMeal('${key}')">
+      <div class="meal-header">
+        <div style="flex:1">
+          <div class="meal-timing">${meal.timing}</div>
+          <div class="meal-name">${meal.name}</div>
+          ${hasNums ? `<div class="meal-macros">${meal.p}P · ${meal.c}C · ${meal.f}F · ${meal.kcal} kcal</div>` : ''}
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;margin-left:8px">
+          <button class="copy-btn" id="copy-${key}" onclick="event.stopPropagation();copyMeal('${key}',\`${escapedCopy}\`)" title="Copy for MacroFactor">📋</button>
+          <svg class="meal-chevron${open?' open':''}" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6,4 10,8 6,12"/></svg>
+        </div>
+      </div>
+      <div class="meal-detail${open?' open':''}">${meal.detail.replace(/\n/g,'<br>')}</div>
+    </div>`;
+  });
+  html += `</div>`;
+
+  return html;
+}
+
+function compactMacro(label, val, target, color) {
+  const pct  = Math.min(100, Math.round(val / target * 100));
+  const diff = val - target;
+  const ok   = Math.abs(diff) <= 10;
+  const diffStr = (diff > 0 ? '+' : '') + diff + 'g';
+  return `<div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
+      <span style="font-size:11px;font-weight:700;color:${color}">${label}</span>
+      <span style="font-size:11px;font-weight:600;color:${ok?'var(--muted)':diff>0?'#ef4444':'#d97706'}">${val}g ${ok?'✓':diffStr}</span>
+    </div>
+    <div style="height:4px;background:var(--border);border-radius:2xx;overflow:hidden">
+      <div style="height:100%;width:${pct}%;background:${color};border-radius:2px"></div>
+    </div>
+    <div style="font-size:10px;color:var(--muted);margin-top:2px">/ ${target}g</div>
+  </div>`;
+}
+
+function macroBar(label, val, target, color) {
+  const pct  = Math.min(100, Math.round(val / target * 100));
+  const diff = val - target;
+  const ok   = Math.abs(diff) <= 10;
+  const diffStr = diff > 0 ? `+${diff}g` : `${diff}g`;
+  return `<div class="macro-bar-row">
+    <div class="macro-label">
+      <strong>${label}</strong>
+      <span style="color:${ok ? 'var(--muted)' : diff > 0 ? '#ef4444' : '#d97706'}">${val}g / ${target}g ${ok ? '✓' : `(${diffStr})`}</span>
+    </div>
+    <div class="macro-bar"><div class="macro-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+  </div>`;
+}
+
+function renderPrep() {
+  const prepList = computePrep();
+
+  if (!prepList.length) {
+    return `<div class="empty-state"><div class="icon">🍳</div><p>No prep needed — all weekend days this week!</p></div>`;
+  }
+
+  const doneCount = Object.values(state.prepChecked).filter(Boolean).length;
+
+  let html = `<div class="info-banner" style="background:#f0fdf4;border:1px solid #bbf7d0">
+    <div style="font-size:14px;font-weight:800;color:#15803d;margin-bottom:3px">🗓 Weekly Batch Prep</div>
+    <div style="font-size:12px;color:#16a34a;line-height:1.5">Do this once on Sunday. Quantities are totals for all 7 days based on your schedule.</div>
+    <div style="font-size:12px;color:#16a34a;margin-top:6px">${doneCount}/${prepList.length} done</div>
+  </div>`;
+
+  html += `<div class="card">`;
+  prepList.forEach((item, i) => {
+    const checked = !!state.prepChecked[i];
+    html += `<div class="prep-item">
+      <div class="check-circle${checked?' checked':''}" onclick="togglePrep(${i})">${checked?svgCheck():''}</div>
+      <div class="prep-text${checked?' checked':''}">${item.task}</div>
+      <div class="prep-qty">${fmtQty(item.qty, item.unit)}</div>
+    </div>`;
+  });
+  html += `</div>`;
+
+  html += `<div class="card">
+    <div class="section-label">💡 Prep tips</div>
+    <div style="font-size:13px;color:var(--muted);line-height:1.7">
+      • Cook rice in a large batch — keeps 5 days refrigerated<br>
+      • Season proteins simply (garlic, GF tamari, herbs) so they work across meals<br>
+      • Pre-bag smoothie packs (oats + berries) in freezer — just add protein & egg whites in the morning<br>
+      • Roast a big tray of veggies (bell pepper, zucchini, carrots) all at once
+    </div>
+  </div>`;
+
+  return html;
+}
+
+function renderGrocery() {
+  const items = computeGrocery();
+
+  if (!items.length) {
+    return `<div class="empty-state"><div class="icon">🛒</div><p>No ingredients yet.<br>Add plans in Schedule first.</p></div>`;
+  }
+
+  // Group by cat
+  const grouped = {};
+  items.forEach(item => {
+    if (!grouped[item.cat]) grouped[item.cat] = [];
+    grouped[item.cat].push(item);
+  });
+
+  const checkedN = Object.values(state.groceryChecked).filter(Boolean).length;
+  const totalN   = items.length;
+
+  let html = `<div class="info-banner" style="background:#eff6ff;border:1px solid #bfdbfe">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:14px;font-weight:800;color:#1d4ed8">🛒 Shopping List</div>
+      <div style="font-size:13px;color:var(--muted)">${checkedN}/${totalN}</div>
+    </div>
+    <div style="font-size:12px;color:#2563eb;margin-top:3px">Auto-generated from this week's schedule</div>
+    ${checkedN > 0 ? `<button onclick="clearGrocery()" style="margin-top:8px;font-size:12px;color:#ef4444;background:none;border:none;cursor:pointer;padding:0;font-weight:600">Clear checked ×</button>` : ''}
+  </div>`;
+
+  const sortedCats = Object.keys(grouped).sort((a,b) => CAT_META[a].order - CAT_META[b].order);
+  sortedCats.forEach(cat => {
+    html += `<div class="card">
+      <div class="grocery-cat-title">${CAT_META[cat].label}</div>`;
+    grouped[cat].forEach(item => {
+      const key     = `${cat}||${item.name}`;
+      const checked = !!state.groceryChecked[key];
+      html += `<div class="grocery-item">
+        <div class="check-square${checked?' checked':''}" onclick="toggleGrocery('${key}')">${checked?svgCheck():''}</div>
+        <div class="grocery-name${checked?' checked':''}">${item.name}</div>
+        <div class="grocery-qty">${fmtQty(item.qty, item.unit)}</div>
+      </div>`;
     });
-    if(rows){
-      cardsHtml+='<div class="grocery-card"><div class="grocery-cat">'+cat.label+'</div>'+rows+'</div>';
+    html += `</div>`;
+  });
+
+  return html;
+}
+
+// ─────────────────────────────────────────────
+// ACTIONS
+// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// CHAT TAB
+// ─────────────────────────────────────────────
+function renderAsk() {
+  const minH = `calc(100dvh - var(--header-h) - var(--bottom-nav-h) - 28px)`;
+  let html = `<div style="display:flex;flex-direction:column;min-height:${minH}">
+    <div id="chat-msgs" style="flex:1;display:flex;flex-direction:column;gap:10px;padding-bottom:10px">`;
+
+  if (state.chatMessages.length === 0 && !state.chatLoading) {
+    html += `<div style="text-align:center;padding:36px 16px 20px;color:var(--muted)">
+      <div style="font-size:38px;margin-bottom:12px">💬</div>
+      <div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:8px">Ask about your plan</div>
+      <div style="font-size:13px;line-height:1.7">Substitutions · hitting macros · what to order out<br>FODMAP questions · meal timing · anything else</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;padding:0 4px">
+      ${['What can I swap for ground beef?','Am I hitting my protein target today?','What are good FODMAP-safe restaurants?','How do I add more carbs on a training day?'].map(q =>
+        `<button onclick="prefillChat('${q.replace(/'/g,"\\'")}');document.getElementById('chat-input').focus()"
+          style="text-align:left;padding:10px 14px;border-radius:12px;border:1.5px solid var(--border);background:var(--card);font-size:13px;color:var(--text);cursor:pointer;-webkit-tap-highlight-color:transparent">${q}</button>`
+      ).join('')}
+    </div>`;
+  }
+
+  state.chatMessages.forEach(msg => {
+    if (msg.role === 'user') {
+      html += `<div style="align-self:flex-end;background:var(--primary);color:white;padding:10px 14px;border-radius:18px 18px 4px 18px;font-size:14px;max-width:84%;line-height:1.5;word-break:break-word">${escHtml(msg.text)}</div>`;
+    } else {
+      html += `<div style="align-self:flex-start;background:var(--card);border:1px solid var(--border);padding:10px 14px;border-radius:18px 18px 18px 4px;font-size:14px;max-width:92%;line-height:1.65;box-shadow:0 1px 3px rgba(0,0,0,0.06);word-break:break-word">${msg.text.replace(/\n/g,'<br>')}</div>`;
     }
   });
 
-  el.innerHTML=schedBadge+subHtml+cardsHtml;
+  if (state.chatLoading) {
+    html += `<div style="align-self:flex-start;background:var(--card);border:1px solid var(--border);padding:12px 16px;border-radius:18px 18px 18px 4px;box-shadow:0 1px 3px rgba(0,0,0,0.06);display:flex;gap:5px;align-items:center">
+      <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    </div>`;
+  }
+
+  html += `</div>
+    <div style="position:sticky;bottom:0;background:var(--bg);padding:8px 0 2px;display:flex;gap:8px;align-items:center">
+      <input id="chat-input" type="text" placeholder="Ask anything about your plan…"
+        style="flex:1;padding:11px 16px;border-radius:24px;border:1.5px solid var(--border);font-size:14px;outline:none;background:var(--card);-webkit-appearance:none;color:var(--text)"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat()}"
+        ${state.chatLoading ? 'disabled' : ''}>
+      <button onclick="sendChat()" ${state.chatLoading ? 'disabled' : ''}
+        style="width:44px;height:44px;flex-shrink:0;border-radius:50%;background:${state.chatLoading ? 'var(--border)' : 'var(--primary)'};border:none;cursor:${state.chatLoading ? 'default' : 'pointer'};display:flex;align-items:center;justify-content:center;transition:background 0.15s">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22,2 15,22 11,13 2,9"/></svg>
+      </button>
+    </div>
+  </div>`;
+
+  return html;
 }
 
-function switchTab(name,btn){
-  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('on');});
-  document.querySelectorAll('.nav-btn').forEach(function(b){b.classList.remove('on');});
-  document.getElementById('tab-'+name).classList.add('on');
-  btn.classList.add('on');
-  if(name==='browse'){var k=document.getElementById('tab-browse').querySelector('#planSelect');if(!k)renderBrowse('training-home');}
-  if(name==='groceries')renderGroceries();
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-function renderSettingsSheet(){
-  var trainRow=document.getElementById('trainDayRow');
-  var officeRow=document.getElementById('officeDayRow');
-  trainRow.innerHTML='';
-  officeRow.innerHTML='';
-  DAYS.forEach(function(day,i){
-    var isTrain=schedule.train.indexOf(i)>=0;
-    var tc=document.createElement('button');
-    tc.className='day-chip'+(isTrain?' tr':'');
-    tc.innerHTML='<div class="d">'+day[0]+'</div><div class="dt">'+(isTrain?'Train':'Rest')+'</div>';
-    tc.onclick=function(){
-      var idx=schedule.train.indexOf(i);
-      if(idx>=0)schedule.train.splice(idx,1);else schedule.train.push(i);
-      renderSettingsSheet();
-    };
-    trainRow.appendChild(tc);
+function prefillChat(text) {
+  const input = document.getElementById('chat-input');
+  if (input) input.value = text;
+}
 
-    var isOff=schedule.office.indexOf(i)>=0;
-    var oc=document.createElement('button');
-    oc.className='off-chip'+(isOff?' off':'');
-    oc.innerHTML='<div class="d">'+day[0]+'</div><div class="dt">'+(isOff?'Office':'Home')+'</div>';
-    oc.onclick=function(){
-      var idx=schedule.office.indexOf(i);
-      if(idx>=0)schedule.office.splice(idx,1);else schedule.office.push(i);
-      renderSettingsSheet();
-    };
-    officeRow.appendChild(oc);
+function scrollChatToBottom() {
+  setTimeout(() => {
+    const content = document.getElementById('content');
+    if (content) content.scrollTop = content.scrollHeight;
+  }, 60);
+}
+
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  if (!input) return;
+  const text = (input.value || '').trim();
+  if (!text || state.chatLoading) return;
+
+  state.chatMessages.push({ role: 'user', text });
+  state.chatLoading = true;
+  input.value = '';
+  render();
+  scrollChatToBottom();
+
+  // Build context
+  const pid = state.schedule[state.selectedDay];
+  const plan = pid ? PLAN_TYPES[pid] : null;
+  const ctx = {
+    today: DAYS[state.selectedDay],
+    planType: plan ? plan.label : 'none assigned',
+    targets: plan ? plan.targets : null,
+    meals: plan ? plan.meals.map(m => ({ timing: m.timing, name: m.name, p: m.p, c: m.c, f: m.f, kcal: m.kcal, detail: m.detail })) : [],
+    weekSchedule: state.schedule.map((p, i) => ({ day: DAYS[i], plan: p ? PLAN_TYPES[p].label : 'none' }))
+  };
+
+  const prompt = `You are a practical nutrition assistant for Shane, a competitive bodybuilder coached by Raif.
+
+Shane's dietary restrictions (strict): gluten-free, lactose-free, no whey protein, low FODMAP — garlic and onions are fine, but avoid beans/lentils/chickpeas (GOS), excess fructose (apples, pears, honey, mango), and polyols (mushrooms, cauliflower, stone fruits, blackberries, sugar alcohols). Strawberries, blueberries, and raspberries are fine in normal portions.
+
+Protein powder: True Nutrition soy and egg protein — 30g P, 0g C, 0g F per scoop. He tracks everything in MacroFactor.
+
+Current meal plan context:
+${JSON.stringify(ctx, null, 2)}
+
+Answer the following question concisely and practically. If suggesting food substitutions, always verify FODMAP safety. If discussing macros, reference his actual targets from the context above.
+
+Question: ${text}`;
+
+  try {
+    if (window.cowork && window.cowork.askClaude) {
+      const response = await window.cowork.askClaude(prompt, []);
+      state.chatMessages.push({ role: 'assistant', text: response });
+    } else {
+      state.chatMessages.push({ role: 'assistant', text: '⚠️ Chat requires the Cowork app. Open this as a Cowork artifact to enable it.' });
+    }
+  } catch(e) {
+    state.chatMessages.push({ role: 'assistant', text: 'Something went wrong — please try again.' });
+  }
+
+  state.chatLoading = false;
+  render();
+  scrollChatToBottom();
+}
+
+function setTab(tab) { state.activeTab = tab; render(); }
+function selectDay(i) { state.selectedDay = i; render(); }
+function setPlan(i, pid) { state.schedule[i] = pid; render(); }
+function toggleMeal(key) { state.openMeals[key] = !state.openMeals[key]; render(); }
+function togglePrep(i) { state.prepChecked[i] = !state.prepChecked[i]; render(); }
+function toggleGrocery(key) { state.groceryChecked[key] = !state.groceryChecked[key]; render(); }
+function clearGrocery() { state.groceryChecked = {}; render(); }
+
+function copyMeal(key, text) {
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copy-' + key);
+    if (!btn) return;
+    btn.classList.add('copied');
+    btn.textContent = '✓ Copied';
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      btn.textContent = '📋';
+    }, 1800);
+  }).catch(() => {
+    // Fallback for older browsers
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    const btn = document.getElementById('copy-' + key);
+    if (btn) {
+      btn.classList.add('copied');
+      btn.textContent = '✓ Copied';
+      setTimeout(() => { btn.classList.remove('copied'); btn.textContent = '📋'; }, 1800);
+    }
   });
 }
 
-document.getElementById('openSettings').addEventListener('click',function(){
-  renderSettingsSheet();
-  document.getElementById('settingsOverlay').classList.add('on');
+// ─────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────
+document.getElementById('header-date').textContent = today.toLocaleDateString('en-US', {
+  weekday: 'short', month: 'short', day: 'numeric'
 });
-document.getElementById('closeSettings').addEventListener('click',function(){
-  document.getElementById('settingsOverlay').classList.remove('on');
-});
-document.getElementById('settingsOverlay').addEventListener('click',function(e){
-  if(e.target===this)this.classList.remove('on');
-});
-document.getElementById('saveSettings').addEventListener('click',function(){
-  saveSchedule(schedule.train,schedule.office);
-  document.getElementById('settingsOverlay').classList.remove('on');
-  renderToday();
-  renderGroceries();
-});
-
-renderToday();
+render();
 </script>
 </body>
 </html>
