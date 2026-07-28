@@ -108,6 +108,29 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .office-chip .dt{font-size:10px;color:#9ca3af;margin-top:1px;}
 .office-chip.off{background:#f3f4f6;border-color:#d1d5db;color:#374151;}
 .office-chip.off .dt{color:#9ca3af;}
+
+/* Measuring list */
+.isec{font-size:10px;font-weight:600;color:#9ca3af;letter-spacing:.07em;margin:12px 0 2px;}
+.irow{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid #f3f4f6;align-items:center;cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none;}
+.irow:last-child{border-bottom:none;}
+.ibox{width:21px;height:21px;border-radius:6px;border:1.5px solid #d1d5db;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;line-height:1;color:transparent;background:#fff;}
+.irow.done .ibox{background:#10b981;border-color:#10b981;color:#fff;}
+.irow.done .iname{color:#c9cdd3;text-decoration:line-through;}
+.irow.done .q,.irow.done .qu{color:#c9cdd3;text-decoration:line-through;}
+.q{font-variant-numeric:tabular-nums;font-weight:500;width:64px;flex-shrink:0;color:#111827;line-height:1.15;}
+.qbig{font-size:20px;}
+.qmed{font-size:14px;}
+.qu{font-size:11px;color:#9ca3af;font-weight:400;margin-left:2px;}
+.qfree{font-size:11px;color:#9ca3af;font-weight:400;}
+.iname{font-size:13.5px;color:#374151;flex:1;line-height:1.35;}
+.isub{font-size:11px;color:#9ca3af;}
+.mtiming{display:flex;align-items:center;gap:8px;}
+.mprog{font-size:11px;color:#6b7280;font-weight:500;}
+.mprog.allok{color:#059669;}
+.reset-btn{margin-left:auto;background:none;border:none;font-size:11px;color:#d1d5db;cursor:pointer;font-family:inherit;padding:2px 4px;}
+.reset-btn:active{color:#6b7280;}
+.mtip{font-size:11.5px;color:#6b7280;background:#f9fafb;border-radius:8px;padding:8px 10px;margin-top:10px;line-height:1.5;}
+.est-tag{color:#b45309;}
 </style>
 </head>
 <body>
@@ -130,11 +153,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="plan-picker-row">
     <label>Plan</label>
     <select id="all-plan-select" onchange="renderAllPlans()">
-      <option value="training-home">Training · Home</option>
-      <option value="rest-home">Rest · Home</option>
-      <option value="training-office">Training · Office</option>
-      <option value="rest-office">Rest · Office</option>
-      <option value="weekend">Weekend</option>
+      <option value="home">Home</option>
+      <option value="office">Office</option>
     </select>
   </div>
   <div id="all-plan-meals"></div>
@@ -165,6 +185,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </div>
 
     <div class="sett-label">Training days</div>
+    <div class="office-note">Macros are the same every day (270g P · 360g C · 120g F · ~3,600 kcal). This toggle is for reference only — it doesn't change your meals.</div>
     <div class="legend">
       <div class="leg"><div class="leg-sq" style="background:#dbeafe;border:1.5px solid #93c5fd"></div>Training</div>
       <div class="leg"><div class="leg-sq" style="background:#dcfce7;border:1.5px solid #86efac"></div>Rest</div>
@@ -185,200 +206,175 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 const DAYS_SHORT = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 
 const PLANS = {
-  'training-home': {
-    label: 'Training Day — Home',
-    short: 'Training · Home',
-    category: 'training',
-    targets: { p: 260, c: 195, f: 87, kcal: 2600 },
+  'home': {
+    label: 'Daily Plan — Home',
+    short: 'Home',
+    category: 'daily',
+    targets: { p: 270, c: 360, f: 120, kcal: 3600 },
     meals: [
-      { timing: 'Morning', name: 'TJ\'s Chicken Breakfast Sausages',
-        foods: '12 links Trader Joe\'s Chicken Breakfast Sausages',
-        p: 66, c: 6, f: 12, kcal: 420 },
+      { timing: 'Morning', name: 'Chicken sausages + oats + berries',
+        items: [
+          { q: 8, u: 'links', n: 'TJ\'s Chicken Breakfast Sausages' },
+          { q: 70, u: 'g', n: 'GF rolled oats', sub: 'dry — cook in water' },
+          { q: 130, u: 'g', n: 'Mixed berries' },
+        ],
+        p: 54, c: 67, f: 14, kcal: 610 },
+
       { timing: 'Lunch', name: 'Chicken + rice + stir-fry veggies',
-        foods: '200g cooked chicken breast · 175g cooked white rice · 100g bell pepper, zucchini & carrots · 50g baby spinach · 1.5 tbsp olive oil · garlic to taste',
-        p: 58, c: 48, f: 25, kcal: 660 },
+        items: [
+          { q: 175, u: 'g', n: 'Chicken breast', sub: 'cooked' },
+          { q: 300, u: 'g', n: 'White rice', sub: 'cooked' },
+          { q: 100, u: 'g', n: 'Bell pepper, zucchini & carrots' },
+          { q: 50, u: 'g', n: 'Baby spinach' },
+          { q: 1.5, u: 'tbsp', n: 'Olive oil', g: 'add' },
+          { q: null, n: 'Garlic, GF tamari', g: 'add' },
+        ],
+        p: 65, c: 93, f: 28, kcal: 884 },
+
       { timing: 'Intra-workout', name: 'Gatorade',
-        foods: '28 oz Gatorade Thirst Quencher (bring to gym).',
-        p: 0, c: 52, f: 0, kcal: 200 },
-      { timing: 'Post-workout', name: 'Protein shake',
-        foods: '1.5 scoops True Nutrition soy & egg protein in water.',
-        p: 45, c: 0, f: 0, kcal: 180 },
+        items: [ { q: 28, u: 'oz', n: 'Gatorade Thirst Quencher', sub: 'bring to gym' } ],
+        p: 0, c: 52, f: 0, kcal: 208 },
+
+      { timing: 'Post-workout', name: 'Protein shake + banana',
+        items: [
+          { q: 1.5, u: 'scoop', n: 'True Nutrition soy & egg protein', sub: 'in water' },
+          { q: 1, u: 'count', n: 'Banana', sub: 'medium' },
+        ],
+        p: 45, c: 27, f: 0, kcal: 288 },
+
       { timing: 'Dinner', name: 'Ground beef + rice + roasted veggies',
-        foods: '170g cooked 90% lean ground beef · 125g cooked white rice · 100g mixed veggies · 50g baby spinach · 2.5 tbsp olive oil · garlic, GF tamari, ¼ tsp turmeric & pinch black pepper\n\nSalmon swap: replace ground beef with 170g cooked salmon + reduce oil by 1 tbsp — great 2–3×/week for variety & selenium.',
-        p: 59, c: 33, f: 52, kcal: 804 },
-      { timing: 'Before bed', name: 'Greek yogurt + Brazil nut',
-        foods: '250g plain non-fat Greek yogurt · 1 Brazil nut (selenium)',
-        p: 26, c: 13, f: 3, kcal: 183 },
+        items: [
+          { q: 200, u: 'g', n: '90% lean ground beef', sub: 'cooked' },
+          { q: 300, u: 'g', n: 'White rice', sub: 'cooked' },
+          { q: 100, u: 'g', n: 'Mixed veggies' },
+          { q: 50, u: 'g', n: 'Baby spinach' },
+          { q: 2, u: 'tbsp', n: 'Olive oil', g: 'add' },
+          { q: null, n: 'Garlic, GF tamari, ¼ tsp turmeric, pinch black pepper', g: 'add' },
+        ],
+        tip: 'Salmon swap: 200g cooked salmon instead of the beef, and drop the oil to 1 tbsp. Good 2–3×/week for variety and selenium.',
+        p: 63, c: 93, f: 51, kcal: 1083 },
+
+      { timing: 'Before bed', name: 'Greek yogurt + walnuts + berries',
+        items: [
+          { q: 200, u: 'g', n: 'Plain non-fat Greek yogurt' },
+          { q: 0.5, u: 'scoop', n: 'True Nutrition protein', sub: 'stirred in' },
+          { q: 35, u: 'g', n: 'Walnuts' },
+          { q: 1, u: 'count', n: 'Brazil nut', sub: 'selenium' },
+          { q: 120, u: 'g', n: 'Raspberries' },
+        ],
+        p: 43, c: 29, f: 27, kcal: 525 },
     ],
-    notes: [],
+    notes: [
+      { type: 'ni', text: 'Same targets every day: 270g P · 360g C · 120g F · ~3,600 kcal. No separate rest-day plan.' },
+      { type: 'ns', text: 'Non-training day: skip the gym but keep the carbs. Drink the Gatorade with a meal, or swap it for ~65g dry white rice or 1 banana + 2 rice cakes.' },
+    ],
     ingredients: [
-      { name: 'TJ\'s Chicken Breakfast Sausages', qty: 12, unit: 'links', cat: 'proteins' },
-      { name: 'Chicken breast', qty: 200, unit: 'g', cat: 'proteins' },
-      { name: '90% lean ground beef', qty: 170, unit: 'g', cat: 'proteins' },
-      { name: 'Greek yogurt (non-fat)', qty: 250, unit: 'g', cat: 'proteins' },
-      { name: 'True Nutrition protein', qty: 1.5, unit: 'scoop', cat: 'supplements' },
+      { name: 'TJ\'s Chicken Breakfast Sausages', qty: 8, unit: 'links', cat: 'proteins' },
+      { name: 'Chicken breast (cooked wt)', qty: 175, unit: 'g', cat: 'proteins' },
+      { name: '90% lean ground beef (cooked wt)', qty: 200, unit: 'g', cat: 'proteins' },
+      { name: 'Greek yogurt (non-fat)', qty: 200, unit: 'g', cat: 'proteins' },
+      { name: 'True Nutrition protein', qty: 2, unit: 'scoop', cat: 'supplements' },
       { name: 'Brazil nuts', qty: 1, unit: 'count', cat: 'supplements' },
+      { name: 'Walnuts', qty: 35, unit: 'g', cat: 'supplements' },
       { name: 'Gatorade (28 oz)', qty: 1, unit: 'count', cat: 'supplements' },
-      { name: 'White rice (dry)', qty: 120, unit: 'g', cat: 'grains' },
+      { name: 'White rice (dry)', qty: 200, unit: 'g', cat: 'grains' },
+      { name: 'GF rolled oats', qty: 70, unit: 'g', cat: 'grains' },
+      { name: 'Mixed berries (frozen)', qty: 130, unit: 'g', cat: 'produce' },
+      { name: 'Raspberries', qty: 120, unit: 'g', cat: 'produce' },
+      { name: 'Banana', qty: 1, unit: 'count', cat: 'produce' },
       { name: 'Mixed veggies (bell pepper, zucchini, carrots)', qty: 200, unit: 'g', cat: 'produce' },
       { name: 'Baby spinach', qty: 100, unit: 'g', cat: 'produce' },
-      { name: 'Olive oil', qty: 4, unit: 'tbsp', cat: 'pantry' },
+      { name: 'Olive oil', qty: 3.5, unit: 'tbsp', cat: 'pantry' },
       { name: 'GF tamari', qty: 1, unit: 'use', cat: 'pantry' },
     ],
   },
 
-  'rest-home': {
-    label: 'Rest Day — Home',
-    short: 'Rest · Home',
-    category: 'rest',
-    targets: { p: 260, c: 50, f: 25, kcal: 1465 },
-    meals: [
-      { timing: 'Morning', name: 'TJ\'s Chicken Breakfast Sausages',
-        foods: '12 links Trader Joe\'s Chicken Breakfast Sausages',
-        p: 66, c: 6, f: 12, kcal: 420 },
-      { timing: 'Lunch', name: 'Chicken + spinach + veggies',
-        foods: '300g cooked chicken breast · 50g baby spinach · 100g mixed veggies (bell pepper, zucchini, carrots) · 1 tsp olive oil · garlic & GF tamari',
-        p: 72, c: 9, f: 8, kcal: 396 },
-      { timing: 'Afternoon', name: 'Protein shake',
-        foods: '2 scoops True Nutrition soy & egg protein in water.',
-        p: 60, c: 0, f: 0, kcal: 240 },
-      { timing: 'Dinner', name: 'Turkey + small rice + olive oil',
-        foods: '165g cooked turkey breast · 40g cooked white rice · 1 tsp olive oil · garlic, herbs, ¼ tsp turmeric & pinch black pepper',
-        p: 37, c: 10, f: 6, kcal: 242 },
-      { timing: 'Before bed', name: 'Greek yogurt + berries',
-        foods: '250g plain non-fat Greek yogurt · 120g mixed berries',
-        p: 26, c: 24, f: 0, kcal: 200 },
-    ],
-    notes: [
-      { type: 'ni', text: 'Rest day is high-protein, very low carb & fat (260P / 50C / 25F / 1,465 kcal). Meals are intentionally lean — skip added oils beyond what\'s listed.' },
-      { type: 'ns', text: 'B-day swap: 165g 90% lean ground beef at dinner instead of turkey — same oil amount.' },
-    ],
-    ingredients: [
-      { name: 'TJ\'s Chicken Breakfast Sausages', qty: 12, unit: 'links', cat: 'proteins' },
-      { name: 'Chicken breast', qty: 300, unit: 'g', cat: 'proteins' },
-      { name: 'Turkey breast', qty: 165, unit: 'g', cat: 'proteins' },
-      { name: 'Greek yogurt (non-fat)', qty: 250, unit: 'g', cat: 'proteins' },
-      { name: 'True Nutrition protein', qty: 2, unit: 'scoop', cat: 'supplements' },
-      { name: 'White rice (dry)', qty: 15, unit: 'g', cat: 'grains' },
-      { name: 'Mixed berries (frozen)', qty: 120, unit: 'g', cat: 'produce' },
-      { name: 'Mixed veggies (bell pepper, zucchini, carrots)', qty: 100, unit: 'g', cat: 'produce' },
-      { name: 'Baby spinach', qty: 50, unit: 'g', cat: 'produce' },
-      { name: 'Olive oil', qty: 2, unit: 'tsp', cat: 'pantry' },
-      { name: 'GF tamari', qty: 1, unit: 'use', cat: 'pantry' },
-    ],
-  },
-
-  'training-office': {
-    label: 'Training Day — Office',
-    short: 'Training · Office',
-    category: 'training',
-    targets: { p: 260, c: 195, f: 87, kcal: 2600 },
+  'office': {
+    label: 'Daily Plan — Office',
+    short: 'Office',
+    category: 'daily',
+    targets: { p: 270, c: 360, f: 120, kcal: 3600 },
     meals: [
       { timing: 'Morning (home)', name: 'Smoothie',
-        foods: '1.5 scoops True Nutrition soy & egg protein · ¾ cup liquid egg whites · 40g GF rolled oats · 150g mixed berries · 1 tbsp ground flaxseed',
-        p: 72, c: 49, f: 7, kcal: 579 },
-      { timing: 'Lunch (cafeteria)', name: 'Protein + moderate starch + veggies',
-        foods: 'Grilled chicken or turkey (~175g) · moderate rice or potato portion · vegetables.\nAvoid: bread, pasta, cream sauces, fried foods.\nTell server: "gluten-free, no dairy."',
-        p: 60, c: 35, f: 18, kcal: 546, est: true },
+        items: [
+          { q: 1, u: 'scoop', n: 'True Nutrition soy & egg protein' },
+          { q: 0.75, u: 'cup', n: 'Liquid egg whites' },
+          { q: 75, u: 'g', n: 'GF rolled oats', sub: 'dry' },
+          { q: 150, u: 'g', n: 'Mixed berries' },
+          { q: 1, u: 'tbsp', n: 'Ground flaxseed' },
+        ],
+        p: 62, c: 73, f: 10, kcal: 632 },
+
+      { timing: 'Lunch (cafeteria)', name: 'Protein + generous starch + veggies',
+        est: true,
+        addLabel: 'EYEBALL IT',
+        items: [
+          { q: 200, u: 'g', n: 'Grilled chicken or turkey', sub: 'about 2 palms' },
+          { q: null, n: 'Rice or potato — about 1.5 fists', g: 'add' },
+          { q: null, n: 'Vegetables — as much as you want', g: 'add' },
+          { q: null, n: 'Normal cooking oil is fine today', g: 'add' },
+        ],
+        tip: 'Avoid bread, pasta, cream sauces and fried food. Tell the server "gluten-free, no dairy."',
+        p: 60, c: 75, f: 25, kcal: 765 },
+
       { timing: 'Afternoon (office)', name: 'GoMacro PB Choc Chip bar',
-        foods: 'GoMacro Peanut Butter Chocolate Chip MacroBar (70g bar).',
+        items: [ { q: 1, u: 'count', n: 'GoMacro Peanut Butter Chocolate Chip MacroBar', sub: '70g bar' } ],
         p: 11, c: 35, f: 13, kcal: 290 },
+
       { timing: 'Intra-workout', name: 'Gatorade',
-        foods: '28 oz Gatorade Thirst Quencher (bring to gym).',
-        p: 0, c: 52, f: 0, kcal: 200 },
-      { timing: 'Post-workout', name: 'Protein shake',
-        foods: '1.5 scoops True Nutrition soy & egg protein in water.',
-        p: 45, c: 0, f: 0, kcal: 180 },
+        items: [ { q: 28, u: 'oz', n: 'Gatorade Thirst Quencher', sub: 'bring to gym' } ],
+        p: 0, c: 52, f: 0, kcal: 208 },
+
+      { timing: 'Post-workout', name: 'Protein shake + banana',
+        items: [
+          { q: 1.5, u: 'scoop', n: 'True Nutrition soy & egg protein', sub: 'in water' },
+          { q: 1, u: 'count', n: 'Banana', sub: 'medium' },
+        ],
+        p: 45, c: 27, f: 0, kcal: 288 },
+
       { timing: 'Dinner (home)', name: 'Chicken + rice + roasted veggies',
-        foods: '175g cooked chicken breast · 50g cooked white rice · 100g mixed veggies · 50g baby spinach · 3 tbsp olive oil · garlic & GF tamari',
-        p: 46, c: 11, f: 46, kcal: 626 },
-      { timing: 'Before bed', name: 'Greek yogurt + Brazil nut',
-        foods: '250g plain non-fat Greek yogurt · 1 Brazil nut (selenium)',
-        p: 26, c: 13, f: 3, kcal: 183 },
+        items: [
+          { q: 165, u: 'g', n: 'Chicken breast', sub: 'cooked' },
+          { q: 250, u: 'g', n: 'White rice', sub: 'cooked' },
+          { q: 100, u: 'g', n: 'Mixed veggies' },
+          { q: 50, u: 'g', n: 'Baby spinach' },
+          { q: 3, u: 'tbsp', n: 'Olive oil', g: 'add' },
+          { q: null, n: 'Garlic, GF tamari, ¼ tsp turmeric, pinch black pepper', g: 'add' },
+        ],
+        p: 61, c: 79, f: 49, kcal: 1001 },
+
+      { timing: 'Before bed', name: 'Greek yogurt + walnuts',
+        items: [
+          { q: 250, u: 'g', n: 'Plain non-fat Greek yogurt' },
+          { q: 30, u: 'g', n: 'Walnuts' },
+          { q: 1, u: 'count', n: 'Brazil nut', sub: 'selenium' },
+          { q: 40, u: 'g', n: 'Raspberries' },
+        ],
+        p: 31, c: 22, f: 23, kcal: 394 },
     ],
     notes: [
-      { type: 'nw', text: 'Cafeteria lunch is estimated — actual macros vary. Adjust dinner accordingly in MacroFactor.' },
+      { type: 'nw', text: 'Cafeteria lunch is estimated — actual macros vary. Adjust dinner rice or oil to close the gap in MacroFactor.' },
+      { type: 'ni', text: 'Same targets every day: 270g P · 360g C · 120g F · ~3,600 kcal. No separate rest-day plan.' },
+      { type: 'ns', text: 'Non-training day: keep the carbs. Drink the Gatorade with a meal, or swap it for ~65g dry white rice or 1 banana + 2 rice cakes.' },
     ],
     ingredients: [
-      { name: 'Chicken breast', qty: 175, unit: 'g', cat: 'proteins' },
+      { name: 'Chicken breast (cooked wt)', qty: 165, unit: 'g', cat: 'proteins' },
       { name: 'Liquid egg whites', qty: 0.75, unit: 'cup', cat: 'proteins' },
       { name: 'Greek yogurt (non-fat)', qty: 250, unit: 'g', cat: 'proteins' },
-      { name: 'True Nutrition protein', qty: 3, unit: 'scoop', cat: 'supplements' },
+      { name: 'True Nutrition protein', qty: 2.5, unit: 'scoop', cat: 'supplements' },
       { name: 'GoMacro PB Choc Chip bar', qty: 1, unit: 'count', cat: 'supplements' },
       { name: 'Brazil nuts', qty: 1, unit: 'count', cat: 'supplements' },
+      { name: 'Walnuts', qty: 30, unit: 'g', cat: 'supplements' },
       { name: 'Gatorade (28 oz)', qty: 1, unit: 'count', cat: 'supplements' },
-      { name: 'White rice (dry)', qty: 20, unit: 'g', cat: 'grains' },
-      { name: 'GF rolled oats', qty: 40, unit: 'g', cat: 'grains' },
+      { name: 'White rice (dry)', qty: 85, unit: 'g', cat: 'grains' },
+      { name: 'GF rolled oats', qty: 75, unit: 'g', cat: 'grains' },
       { name: 'Mixed berries (frozen)', qty: 150, unit: 'g', cat: 'produce' },
+      { name: 'Raspberries', qty: 40, unit: 'g', cat: 'produce' },
+      { name: 'Banana', qty: 1, unit: 'count', cat: 'produce' },
       { name: 'Mixed veggies (bell pepper, zucchini, carrots)', qty: 100, unit: 'g', cat: 'produce' },
-      { name: 'Baby spinach', qty: 100, unit: 'g', cat: 'produce' },
+      { name: 'Baby spinach', qty: 50, unit: 'g', cat: 'produce' },
       { name: 'Olive oil', qty: 3, unit: 'tbsp', cat: 'pantry' },
       { name: 'GF tamari', qty: 1, unit: 'use', cat: 'pantry' },
-      { name: 'Ground flaxseed', qty: 1, unit: 'tbsp', cat: 'pantry' },
-    ],
-  },
-
-  'rest-office': {
-    label: 'Rest Day — Office',
-    short: 'Rest · Office',
-    category: 'rest',
-    targets: { p: 260, c: 50, f: 25, kcal: 1465 },
-    meals: [
-      { timing: 'Morning (home)', name: 'Smoothie (low-carb)',
-        foods: '1.5 scoops True Nutrition soy & egg protein · ¾ cup liquid egg whites · 75g mixed berries · 1 tbsp ground flaxseed',
-        p: 68, c: 11, f: 4, kcal: 352 },
-      { timing: 'Lunch (cafeteria)', name: 'Grilled lean protein + veggies + small starch',
-        foods: 'Grilled chicken or turkey (~180g) · non-starchy veggies · small rice or potato portion.\nAvoid: bread, pasta, cream sauces, fried foods, cooking oils.\nTell server: "gluten-free, no dairy."',
-        p: 47, c: 15, f: 6, kcal: 302, est: true },
-      { timing: 'Afternoon (office)', name: 'Protein shake',
-        foods: '2.5 scoops True Nutrition soy & egg protein in water.',
-        p: 75, c: 0, f: 0, kcal: 300 },
-      { timing: 'Dinner (home)', name: 'Chicken + spinach + olive oil',
-        foods: '200g cooked chicken breast · 50g baby spinach · 1 tsp olive oil · garlic & GF tamari',
-        p: 48, c: 2, f: 7, kcal: 263 },
-      { timing: 'Before bed', name: 'Greek yogurt + berries',
-        foods: '250g plain non-fat Greek yogurt · 100g mixed berries',
-        p: 26, c: 25, f: 0, kcal: 204 },
-    ],
-    notes: [
-      { type: 'nw', text: 'Cafeteria lunch is estimated — actual macros vary. Skip cooking oil at cafeteria; fat budget is tight on rest days.' },
-      { type: 'ni', text: 'No GoMacro bar on rest days — 35g carbs & 13g fat would blow the budget. Protein shake only in the afternoon.' },
-    ],
-    ingredients: [
-      { name: 'Liquid egg whites', qty: 0.75, unit: 'cup', cat: 'proteins' },
-      { name: 'Chicken breast', qty: 200, unit: 'g', cat: 'proteins' },
-      { name: 'Greek yogurt (non-fat)', qty: 250, unit: 'g', cat: 'proteins' },
-      { name: 'True Nutrition protein', qty: 4, unit: 'scoop', cat: 'supplements' },
-      { name: 'Mixed berries (frozen)', qty: 175, unit: 'g', cat: 'produce' },
-      { name: 'Baby spinach', qty: 50, unit: 'g', cat: 'produce' },
-      { name: 'Olive oil', qty: 1, unit: 'tsp', cat: 'pantry' },
-      { name: 'GF tamari', qty: 1, unit: 'use', cat: 'pantry' },
-      { name: 'Ground flaxseed', qty: 1, unit: 'tbsp', cat: 'pantry' },
-    ],
-  },
-
-  'weekend': {
-    label: 'Weekend / Eating Out',
-    short: 'Weekend',
-    category: 'weekend',
-    targets: { p: 220, c: 300, f: 85, kcal: 3000 },
-    meals: [
-      { timing: 'Morning', name: 'Smoothie (make at home first)',
-        foods: '1 scoop True Nutrition protein · ¾ cup liquid egg whites · 85g GF oats · 175g mixed berries · 1 tbsp ground flaxseed\nAnchors your protein and morning carbs before going out.',
-        p: 65, c: 84, f: 10, kcal: 665 },
-      { timing: 'Out / flexible', name: 'Grilled protein + rice or potato',
-        foods: 'What to order: Grilled protein (chicken, steak, shrimp, fish) + rice or potato sides. Bowl-format restaurants are ideal.\nAvoid: cream sauces · cheese · regular soy sauce · flour tortillas · pasta · breaded proteins.\nTell server: "gluten-free, no dairy."',
-        p: 40, c: 75, f: 20, kcal: 640 },
-      { timing: 'Flexible', name: 'Track & adjust in MacroFactor',
-        foods: 'Portion guide: Palm-size protein ≈ 30–50g P · Fist of rice ≈ 50–70g C · Cooking oil ≈ 15–20g F.\n\nGreat restaurant types:\n• Asian — rice dishes, grilled meats, GF tamari\n• Mexican — rice bowls, corn tortillas (not flour)\n• Mediterranean — rice + grilled proteins (skip hummus)\n• American grill — steak or chicken + potato',
-        p: null, c: null, f: null, kcal: null },
-    ],
-    notes: [],
-    ingredients: [
-      { name: 'Liquid egg whites', qty: 0.75, unit: 'cup', cat: 'proteins' },
-      { name: 'True Nutrition protein', qty: 1, unit: 'scoop', cat: 'supplements' },
-      { name: 'GF rolled oats', qty: 85, unit: 'g', cat: 'grains' },
-      { name: 'Mixed berries (frozen)', qty: 175, unit: 'g', cat: 'produce' },
       { name: 'Ground flaxseed', qty: 1, unit: 'tbsp', cat: 'pantry' },
     ],
   },
@@ -394,7 +390,7 @@ const CAT_META = {
 
 // ─── STATE ──────────────────────────────────────────────────────────────────
 // schedule: array[7] of plan IDs (Mon–Sun)
-const defaultSchedule = ['training-office','rest-office','training-office','training-home','rest-home','weekend','weekend'];
+const defaultSchedule = ['office','office','office','home','home','home','home'];
 
 function loadState() {
   try {
@@ -406,13 +402,23 @@ function saveState() {
   try { localStorage.setItem('mealplan-state', JSON.stringify(state)); } catch(e) {}
 }
 
+// Migrate old plan IDs (training-home / rest-office / weekend / …) to home|office
+function migrateSchedule(sched) {
+  if (!Array.isArray(sched) || sched.length !== 7) return [...defaultSchedule];
+  return sched.map((pid, i) => {
+    if (pid === 'home' || pid === 'office') return pid;
+    if (typeof pid === 'string' && pid.endsWith('-office')) return 'office';
+    return 'home';
+  });
+}
+
 const saved = loadState();
 const state = {
-  schedule: (saved && saved.schedule) ? saved.schedule : [...defaultSchedule],
+  schedule: migrateSchedule(saved && saved.schedule),
   // For schedule sheet: which days are training, which are office
   // Derived from schedule for display; set explicitly in sheet
-  trainDays: saved ? saved.trainDays : [true, false, true, true, false, false, false], // Mon-Sun
-  officeDays: saved ? saved.officeDays : [true, true, true, false, false, false, false],
+  trainDays: (saved && Array.isArray(saved.trainDays)) ? saved.trainDays : [true, false, true, true, false, false, false], // Mon-Sun
+  officeDays: (saved && Array.isArray(saved.officeDays)) ? saved.officeDays : [true, true, true, false, false, false, false],
 };
 
 // ─── HELPERS ────────────────────────────────────────────────────────────────
@@ -462,27 +468,117 @@ function macroChips(meal) {
   </div>`;
 }
 
+// ─── CHECK STATE (resets daily) ─────────────────────────────────────────────
+function todayKey() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+let checks = (function() {
+  try {
+    const raw = JSON.parse(localStorage.getItem('mealplan-checks') || 'null');
+    if (raw && raw.date === todayKey() && raw.done) return raw.done;
+  } catch(e) {}
+  return {};
+})();
+
+function saveChecks() {
+  try { localStorage.setItem('mealplan-checks', JSON.stringify({ date: todayKey(), done: checks })); } catch(e) {}
+}
+
+function toggleItem(key, el) {
+  if (checks[key]) { delete checks[key]; } else { checks[key] = 1; }
+  saveChecks();
+  el.classList.toggle('done', !!checks[key]);
+  const card = el.closest('.mcard');
+  if (card) updateProgress(card);
+}
+
+function updateProgress(card) {
+  const rows = card.querySelectorAll('.irow');
+  const done = card.querySelectorAll('.irow.done').length;
+  const el = card.querySelector('.mprog');
+  if (!el) return;
+  el.textContent = done === 0 ? '' : (done === rows.length ? '✓ all done' : done + ' of ' + rows.length);
+  el.className = 'mprog' + (done === rows.length ? ' allok' : '');
+}
+
+function resetMeal(key, btn) {
+  Object.keys(checks).forEach(k => { if (k.indexOf(key + '|') === 0) delete checks[k]; });
+  saveChecks();
+  const card = btn.closest('.mcard');
+  card.querySelectorAll('.irow.done').forEach(r => r.classList.remove('done'));
+  updateProgress(card);
+}
+
+// ─── ITEM FORMATTING ────────────────────────────────────────────────────────
+function itemQtyHtml(it) {
+  if (it.q === null || it.q === undefined) return '<span class="q qfree">free</span>';
+  if (it.u === 'g') return '<span class="q qbig">' + it.q + '<span class="qu">g</span></span>';
+  if (it.u === 'count') return '<span class="q qmed">×' + it.q + '</span>';
+  return '<span class="q qmed">' + it.q + '<span class="qu">' + it.u + '</span></span>';
+}
+
+function itemPlain(it) {
+  if (it.q === null || it.q === undefined) return it.n;
+  if (it.u === 'g') return it.q + 'g ' + it.n;
+  if (it.u === 'count') return it.q + ' ' + it.n;
+  return it.q + ' ' + it.u + ' ' + it.n;
+}
+
 function mfText(meal) {
-  const macros = meal.p !== null ? `\n\nP: ${meal.p}g  C: ${meal.c}g  F: ${meal.f}g  |  ${meal.kcal} kcal` : '';
-  return `${meal.name}\n${meal.foods}${macros}`;
+  const lines = meal.items.map(itemPlain).join(' · ');
+  const macros = meal.p !== null && meal.p !== undefined
+    ? '\n\nP: ' + meal.p + 'g  C: ' + meal.c + 'g  F: ' + meal.f + 'g  |  ' + meal.kcal + ' kcal' : '';
+  return meal.name + '\n' + lines + macros;
+}
+
+function renderItemRows(items, mealKey, offset) {
+  return items.map((it, i) => {
+    const key = mealKey + '|' + (offset + i);
+    const on = checks[key] ? ' done' : '';
+    const sub = it.sub ? ' <span class="isub">' + esc(it.sub) + '</span>' : '';
+    return '<div class="irow' + on + '" onclick="toggleItem(\'' + key + '\', this)">' +
+      '<span class="ibox">✓</span>' +
+      itemQtyHtml(it) +
+      '<span class="iname">' + esc(it.n) + sub + '</span>' +
+    '</div>';
+  }).join('');
 }
 
 function renderMealCards(meals, planId) {
   return meals.map((meal, i) => {
-    const key = `${planId}-${i}`;
-    const foods = esc(meal.foods).replace(/\n/g, '<br>');
-    const estTag = meal.est ? '<span class="est-tag"> (estimated)</span>' : '';
-    return `<div class="mcard">
-      <div class="mtiming">${meal.timing}</div>
-      <div class="mcard-top">
-        <div class="mname">${meal.name}${estTag}</div>
-        <button class="copy-btn" id="btn-mf-${key}" onclick="copyText(\`${mfText(meal).replace(/\\/g,'\\\\').replace(/`/g,'\\`').replace(/\$/g,'\\$')}\`, this)">Copy for MF</button>
-      </div>
-      <div class="mfoods-row">
-        <div class="mfoods">${foods}</div>
-      </div>
-      ${macroChips(meal)}
-    </div>`;
+    const mealKey = planId + '.' + i;
+    const scale = meal.items.filter(it => it.g !== 'add');
+    const add   = meal.items.filter(it => it.g === 'add');
+    const split = scale.length && add.length;
+
+    let body = '';
+    if (split) {
+      body += '<div class="isec">' + (meal.scaleLabel || 'ON THE SCALE') + '</div>';
+      body += renderItemRows(scale, mealKey, 0);
+      body += '<div class="isec">' + (meal.addLabel || 'ADD WHILE COOKING') + '</div>';
+      body += renderItemRows(add, mealKey, scale.length);
+    } else {
+      body += renderItemRows(meal.items, mealKey, 0);
+    }
+
+    const tip = meal.tip ? '<div class="mtip">' + esc(meal.tip) + '</div>' : '';
+    const est = meal.est ? '<span class="est-tag"> · estimated</span>' : '';
+    const mf = mfText(meal).replace(/\\/g,'\\\\').replace(/`/g,'\\`').replace(/\$/g,'\\$');
+
+    return '<div class="mcard">' +
+      '<div class="mtiming">' + meal.timing + est +
+        '<span class="mprog"></span>' +
+        '<button class="reset-btn" onclick="resetMeal(\'' + mealKey + '\', this)" aria-label="Reset this meal">reset</button>' +
+      '</div>' +
+      '<div class="mcard-top">' +
+        '<div class="mname">' + meal.name + '</div>' +
+        '<button class="copy-btn" onclick="copyText(`' + mf + '`, this)">Copy for MF</button>' +
+      '</div>' +
+      body + tip +
+      macroChips(meal) +
+    '</div>';
   }).join('');
 }
 
@@ -520,9 +616,10 @@ function renderToday() {
 
   const badgeEl = document.getElementById('today-badge');
   if (plan) {
-    const cls = plan.category === 'rest' ? 'rest-badge' : plan.category === 'weekend' ? 'weekend-badge' : '';
+    const isTrain = state.trainDays[dow];
+    const cls = isTrain ? '' : 'rest-badge';
     const tgt = `Target: ${plan.targets.p}g P · ${plan.targets.c}g C · ${plan.targets.f}g F · ~${plan.targets.kcal.toLocaleString()} kcal`;
-    badgeEl.innerHTML = `<span class="today-badge ${cls}">${tgt}</span>`;
+    badgeEl.innerHTML = `<span class="today-badge ${cls}">${isTrain ? '🏋️ Training day' : '😴 Rest day'} · ${tgt}</span>`;
   } else {
     badgeEl.innerHTML = `<span class="no-schedule">Set your schedule using the Schedule button above.</span>`;
   }
@@ -530,19 +627,22 @@ function renderToday() {
   const meals = document.getElementById('today-meals');
   if (!plan) { meals.innerHTML = ''; return; }
   meals.innerHTML =
-    renderMealCards(plan.meals, `today-${pid}`) +
+    renderMealCards(plan.meals, pid) +
     renderNotes(plan.notes) +
     renderTotals(plan);
+  meals.querySelectorAll('.mcard').forEach(updateProgress);
 }
 
 // ─── ALL PLANS TAB ───────────────────────────────────────────────────────────
 function renderAllPlans() {
   const pid = document.getElementById('all-plan-select').value;
   const plan = PLANS[pid];
-  document.getElementById('all-plan-meals').innerHTML =
-    renderMealCards(plan.meals, `all-${pid}`) +
+  const host = document.getElementById('all-plan-meals');
+  host.innerHTML =
+    renderMealCards(plan.meals, pid) +
     renderNotes(plan.notes) +
     renderTotals(plan);
+  host.querySelectorAll('.mcard').forEach(updateProgress);
 }
 
 // ─── GROCERY TAB ────────────────────────────────────────────────────────────
@@ -665,16 +765,8 @@ function saveSchedule() {
   state.trainDays = [...sheetTrain];
   state.officeDays = [...sheetOffice];
   // Derive schedule from train/office combos
-  state.schedule = DAYS_SHORT.map((_, i) => {
-    const isTrain = state.trainDays[i];
-    const isOffice = state.officeDays[i];
-    if (isTrain && isOffice) return 'training-office';
-    if (isTrain && !isOffice) return 'training-home';
-    if (!isTrain && isOffice) return 'rest-office';
-    // Weekend days (Sat=5, Sun=6) that are not training default to weekend
-    if (i >= 5) return 'weekend';
-    return 'rest-home';
-  });
+  // Macros are identical every day — only Home vs Office changes the meals.
+  state.schedule = DAYS_SHORT.map((_, i) => state.officeDays[i] ? 'office' : 'home');
   saveState();
   closeSchedule();
   renderToday();
